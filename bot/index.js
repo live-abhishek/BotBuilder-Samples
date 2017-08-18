@@ -72,6 +72,14 @@ bot.use({
         } else if (supportRegex.test(text)) {
             // interrupt and trigger 'help' dialog
             return session.beginDialog('help:/');
+        } if(text === 'cancel') {
+            // Clears data stored in container.
+            session.userData = {}; 
+            session.privateConversationData = {};
+            session.conversationData = {};
+            session.dialogData = {};
+            session.save();
+            return session.beginDialog('shop:/');
         }
 
         // continue normal flow
