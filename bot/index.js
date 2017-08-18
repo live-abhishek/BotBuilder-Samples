@@ -37,7 +37,7 @@ var bot = new builder.UniversalBot(connector, function (session) {
 });
 
 // Enable Conversation Data persistence
-bot.set('persistConversationData', true);
+bot.set('persistConversationData', false);
 
 // Set default locale
 bot.set('localizerSettings', {
