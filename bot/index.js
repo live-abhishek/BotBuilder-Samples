@@ -22,11 +22,6 @@ var bot = new builder.UniversalBot(connector, function (session) {
     var welcomeCard = new builder.HeroCard(session)
         .title('welcome_title')
         .subtitle('welcome_subtitle')
-        .images([
-            new builder.CardImage(session)
-                .url('https://placeholdit.imgix.net/~text?txtsize=56&txt=Contoso%20Flowers&w=640&h=330')
-                .alt('contoso_flowers')
-        ])
         .buttons([
             builder.CardAction.imBack(session, session.gettext(MainOptions.Shop), MainOptions.Shop),
             builder.CardAction.imBack(session, session.gettext(MainOptions.Support), MainOptions.Support)
@@ -62,6 +57,7 @@ bot.library(require('./validators').createLibrary());
 bot.use({
     botbuilder: function (session, next) {
         var text = session.message.text;
+        console.log(session.message);
 
         var settingsRegex = localizedRegex(session, ['main_options_settings']);
         var supportRegex = localizedRegex(session, ['main_options_talk_to_support', 'help']);
