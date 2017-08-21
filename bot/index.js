@@ -66,6 +66,23 @@ var bot = new builder.UniversalBot(connector, [function (session) {
     }
 );
 
+bot.dialog('showcards', function(session){
+    var msg = new builder.Message(session);
+
+    msg.attachmentLayout(builder.AttachmentLayout.carousel);
+    msg.attachments([
+        new builder.HeroCard(session)
+        .title("Shirt 1")
+        .subtitle("New Shirt")
+        .text("This is shirt text")
+        .images([builder.CardImage.create(session, 'https://hashblu-static.s3.amazonaws.com/'+'cdaaf294-895b-45e9-848f-6d980478c009')])
+        .buttons([
+            builder.CardAction.openUrl(session, "http://google.com", "Google"),            
+            builder.CardAction.imBack(session, "buy classic white t-shirt", "Buy")
+        ])
+    ]);
+}).triggerAction({matches: /^showcards/i});
+
 // Enable Conversation Data persistence
 bot.set('persistConversationData', false);
 
@@ -159,6 +176,21 @@ function beginDialog(address, dialogId, dialogArgs) {
 
 function sendMessage(message) {
     bot.send(message);
+}
+
+function createCard(dbCard){
+    var heroCard = new builder.HeroCard(session)
+    .title(dbCard.title)
+    .subtitle(dbCard.subtitle)
+    .text()
+    .images([builder.CardImage.create(session, 'https://hashblu-static.s3.amazonaws.com/'+dbCard.imageUrls[0])])
+    .buttons([
+        builder.CardAction.imBack(session, "buy classic white t-shirt", "Buy")
+    ]);
+
+    
+
+    return null;
 }
 
 module.exports = {
