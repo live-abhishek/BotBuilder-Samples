@@ -13,8 +13,6 @@ var MainOptions = {
 };
 
 var bot = new builder.UniversalBot(connector, [function (session) {
-
-
     session.send('Test Echo ' + session.message.text);
 
     // if (localizedRegex(session, [MainOptions.Shop]).test(session.message.text)) {
@@ -68,6 +66,7 @@ bot.use({
     botbuilder: function (session, next) {
         var text = session.message.text;
         console.log(session.message);
+        next();
 
         // var settingsRegex = localizedRegex(session, ['main_options_settings']);
         // var supportRegex = localizedRegex(session, ['main_options_talk_to_support', 'help']);
