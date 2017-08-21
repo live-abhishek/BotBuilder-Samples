@@ -1,10 +1,20 @@
 var builder = require('botbuilder');
 var siteUrl = require('./site-url');
+var OrientDB = require('orientjs');
 
 var connector = new builder.ChatConnector({
     appId: process.env.MICROSOFT_APP_ID,
     appPassword: process.env.MICROSOFT_APP_PASSWORD
 });
+
+var server = OrientDB({
+    "host": process.env.ORIENTDB_HOST,
+    "port": process.env.ORIENTDB_PORT,
+    "httpPort": process.env.ORIENTDB_HTTP_PORT,
+    "username": process.env.ORIENTDB_USERNAME,
+    "password": process.env.ORIENTDB_PASSWORD
+  });
+  
 
 // Welcome Dialog
 var MainOptions = {
@@ -13,6 +23,23 @@ var MainOptions = {
 };
 
 var bot = new builder.UniversalBot(connector, [function (session) {
+
+
+    var db = server.use(process.env.ORIENTDB_DBNAME);
+
+    db.open().then(function() {
+        return db.query('select from CardContent where parentId = "root" and orgId = "shopninja" and status = "live" and templateType != "newarrivals_card"');
+     }).then(function(res){
+        res.forEach(function(element) {
+            console.log(element.title);
+            console.log(element);
+        }, this);
+        db.close().then(function(){
+           console.log('closed');
+        });
+     });
+
+
     session.send('Test Echo ' + session.message.text);
 
     // if (localizedRegex(session, [MainOptions.Shop]).test(session.message.text)) {
