@@ -74,12 +74,7 @@ bot.use({
             return session.beginDialog('help:/');
         } if(text === 'cancel') {
             // Clears data stored in container.
-            session.userData = {}; 
-            session.privateConversationData = {};
-            session.conversationData = {};
-            session.dialogData = {};
-            session.save();
-            return session.beginDialog('shop:/');
+            return session.endDialog('Bye!');
         }
 
         // continue normal flow
