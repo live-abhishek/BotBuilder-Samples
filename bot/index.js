@@ -12,24 +12,34 @@ var MainOptions = {
     Support: 'main_options_talk_to_support'
 };
 
-var bot = new builder.UniversalBot(connector, function (session) {
+var bot = new builder.UniversalBot(connector, [function (session) {
 
-    if (localizedRegex(session, [MainOptions.Shop]).test(session.message.text)) {
-        // Order Flowers
-        return session.beginDialog('shop:/');
+
+    session.send('Test Echo ' + session.message.text);
+
+    // if (localizedRegex(session, [MainOptions.Shop]).test(session.message.text)) {
+    //     // Order Flowers
+    //     return session.beginDialog('shop:/');
+    // }
+
+    // var welcomeCard = new builder.HeroCard(session)
+    //     .title('welcome_title')
+    //     .subtitle('welcome_subtitle')
+    //     .buttons([
+    //         builder.CardAction.imBack(session, session.gettext(MainOptions.Shop), MainOptions.Shop),
+    //         builder.CardAction.imBack(session, session.gettext(MainOptions.Support), MainOptions.Support)
+    //     ]);
+
+    // session.send(new builder.Message(session)
+    //     .addAttachment(welcomeCard));
+}])
+.endConversationAction(
+    "endOrderDinner", "Bye!",
+    {
+        matches: /^cancel$|^goodbye$/i,
+        confirmPrompt: "Are you sure?"
     }
-
-    var welcomeCard = new builder.HeroCard(session)
-        .title('welcome_title')
-        .subtitle('welcome_subtitle')
-        .buttons([
-            builder.CardAction.imBack(session, session.gettext(MainOptions.Shop), MainOptions.Shop),
-            builder.CardAction.imBack(session, session.gettext(MainOptions.Support), MainOptions.Support)
-        ]);
-
-    session.send(new builder.Message(session)
-        .addAttachment(welcomeCard));
-});
+);
 
 // Enable Conversation Data persistence
 bot.set('persistConversationData', false);
@@ -41,68 +51,68 @@ bot.set('localizerSettings', {
 });
 
 // Sub-Dialogs
-bot.library(require('./dialogs/shop').createLibrary());
-bot.library(require('./dialogs/address').createLibrary());
-bot.library(require('./dialogs/product-selection').createLibrary());
-bot.library(require('./dialogs/delivery').createLibrary());
-bot.library(require('./dialogs/details').createLibrary());
-bot.library(require('./dialogs/checkout').createLibrary());
-bot.library(require('./dialogs/settings').createLibrary());
-bot.library(require('./dialogs/help').createLibrary());
+// bot.library(require('./dialogs/shop').createLibrary());
+// bot.library(require('./dialogs/address').createLibrary());
+// bot.library(require('./dialogs/product-selection').createLibrary());
+// bot.library(require('./dialogs/delivery').createLibrary());
+// bot.library(require('./dialogs/details').createLibrary());
+// bot.library(require('./dialogs/checkout').createLibrary());
+// bot.library(require('./dialogs/settings').createLibrary());
+// bot.library(require('./dialogs/help').createLibrary());
 
 // Validators
-bot.library(require('./validators').createLibrary());
+// bot.library(require('./validators').createLibrary());
 
-// Trigger secondary dialogs when 'settings' or 'support' is called
+// Trigger secondary dialogs when 'settings' or 'support' is called. Add Middlewares.
 bot.use({
     botbuilder: function (session, next) {
         var text = session.message.text;
         console.log(session.message);
 
-        var settingsRegex = localizedRegex(session, ['main_options_settings']);
-        var supportRegex = localizedRegex(session, ['main_options_talk_to_support', 'help']);
+        // var settingsRegex = localizedRegex(session, ['main_options_settings']);
+        // var supportRegex = localizedRegex(session, ['main_options_talk_to_support', 'help']);
 
-        if (settingsRegex.test(text)) {
-            // interrupt and trigger 'settings' dialog 
-            return session.beginDialog('settings:/');
-        } else if (supportRegex.test(text)) {
-            // interrupt and trigger 'help' dialog
-            return session.beginDialog('help:/');
-        } if(text === 'cancel') {
-            // Clears data stored in container.
-            return session.endDialog('Bye!');
-        }
+        // if (settingsRegex.test(text)) {
+        //     // interrupt and trigger 'settings' dialog 
+        //     return session.beginDialog('settings:/');
+        // } else if (supportRegex.test(text)) {
+        //     // interrupt and trigger 'help' dialog
+        //     return session.beginDialog('help:/');
+        // } if(text === 'cancel') {
+        //     // Clears data stored in container.
+        //     return session.endDialog('Bye!');
+        // }
 
-        // continue normal flow
-        next();
+        // // continue normal flow
+        // next();
     }
 });
 
 // Send welcome when conversation with bot is started, by initiating the root dialog
-bot.on('conversationUpdate', function (message) {
-    if (message.membersAdded) {
-        message.membersAdded.forEach(function (identity) {
-            if (identity.id === message.address.bot.id) {
-                bot.beginDialog(message.address, '/');
-            }
-        });
-    }
-});
+// bot.on('conversationUpdate', function (message) {
+//     if (message.membersAdded) {
+//         message.membersAdded.forEach(function (identity) {
+//             if (identity.id === message.address.bot.id) {
+//                 bot.beginDialog(message.address, '/');
+//             }
+//         });
+//     }
+// });
 
 // Cache of localized regex to match selection from main options
-var LocalizedRegexCache = {};
-function localizedRegex(session, localeKeys) {
-    var locale = session.preferredLocale();
-    var cacheKey = locale + ":" + localeKeys.join('|');
-    if (LocalizedRegexCache.hasOwnProperty(cacheKey)) {
-        return LocalizedRegexCache[cacheKey];
-    }
+// var LocalizedRegexCache = {};
+// function localizedRegex(session, localeKeys) {
+//     var locale = session.preferredLocale();
+//     var cacheKey = locale + ":" + localeKeys.join('|');
+//     if (LocalizedRegexCache.hasOwnProperty(cacheKey)) {
+//         return LocalizedRegexCache[cacheKey];
+//     }
 
-    var localizedStrings = localeKeys.map(function (key) { return session.localizer.gettext(locale, key); });
-    var regex = new RegExp('^(' + localizedStrings.join('|') + ')', 'i');
-    LocalizedRegexCache[cacheKey] = regex;
-    return regex;
-}
+//     var localizedStrings = localeKeys.map(function (key) { return session.localizer.gettext(locale, key); });
+//     var regex = new RegExp('^(' + localizedStrings.join('|') + ')', 'i');
+//     LocalizedRegexCache[cacheKey] = regex;
+//     return regex;
+// }
 
 // Connector listener wrapper to capture site url
 var connectorListener = connector.listen();
