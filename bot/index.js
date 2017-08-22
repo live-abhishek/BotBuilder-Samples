@@ -108,7 +108,7 @@ function createCard(session, dbCard){
 function getDBCards(session){
     db.open().then(function() {
         console.log('executing query');
-        return db.query('select from CardContent where parentId = "root" and orgId = "shopninja" and status = "live" and templateType != "newarrivals_card"');
+        return db.query('select from CardContent where parentId = "root" and orgId = "hbdemo" and status = "live" and templateType != "newarrivals_card"');
      }).then(function(res){
         createCarouselAndSend(session, res);
         db.close().then(function(){
@@ -120,7 +120,7 @@ function getDBCards(session){
 function createCarouselAndSend(session, dbCards){
     var heroCards = [];
     var msg = new builder.Message(session);
-    for(var i = 0; i < 2; i++){
+    for(var i = 0; i < dbCards.length; i++){
         heroCards.push(createCard(session, dbCards[i]));
     }
     msg.attachmentLayout(builder.AttachmentLayout.carousel);
