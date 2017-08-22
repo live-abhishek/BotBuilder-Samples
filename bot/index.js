@@ -24,12 +24,6 @@ var MainOptions = {
 
 var bot = new builder.UniversalBot(connector, [function (session) {
     session.send('Test Echo ' + session.message.text);
-
-    // if (localizedRegex(session, [MainOptions.Shop]).test(session.message.text)) {
-    //     // Order Flowers
-    //     return session.beginDialog('shop:/');
-    // }
-
 }])
 .endConversationAction(
     "endOrderDinner", "Bye!",
@@ -52,7 +46,6 @@ bot.set('localizerSettings', {
     defaultLocale: 'en'
 });
 
-// Trigger secondary dialogs when 'settings' or 'support' is called. Add Middlewares.
 bot.use({
     botbuilder: function (session, next) {
         var text = session.message.text;
