@@ -16,15 +16,48 @@ var server = OrientDB({
   });
 var db = server.use(process.env.ORIENTDB_DBNAME);
 
-// Welcome Dialog
-var MainOptions = {
-    Shop: 'main_options_order_flowers',
-    Support: 'main_options_talk_to_support'
-};
 
 var bot = new builder.UniversalBot(connector, [function (session) {
-    session.send('Test Echo ' + session.message.text);
-}])
+    if(session.message.text === 'Hi'){
+        getRootCards(session);
+    }
+}]);
+
+
+bot.dialog('search', [
+    function(session){
+        session.send("Select any one of the cards");
+        builder.Prompts.choice(session, "Search By", ["name","id"], { listStyle: builder.ListStyle.auto });
+    },
+    function(session, results){
+        session.dialogData.searchChoice.type = results.response;
+        if(session.dialogData.searchChoice.type === 'name'){
+            builder.Prompts.text(session, "Enter name of the product");
+        } else if(session.dialogData.searchChoice === 'id'){
+            builder.Prompts.text(session, "Enter id of the product");
+        } else {
+            session.endConversation("could not understand the choice");
+        }
+    },
+    function(session, results){
+        if(results.response){
+            session.dialog.searchChoice.searchTerm = results.response;
+        }
+        if(session.dialog.searchChoice.searchTerm){
+            var searchType = session.dialog.searchChoice.type;
+            var searchTerm = session.dialog.searchChoice.searchTerm;
+            if(seachType === 'name'){
+                getCardsByName(session, searchTerm);
+            } else if(searchType === 'id'){
+                getCardsByProductId(session, searchTerm);
+            }
+        }
+
+        session.endDialog('Search complete!');
+
+    }
+])
+.triggerAction({matches: /^search^/i})
 .endConversationAction(
     "endOrderDinner", "Bye!",
     {
@@ -33,9 +66,32 @@ var bot = new builder.UniversalBot(connector, [function (session) {
     }
 );
 
-bot.dialog('showcards', function(session){
-    getDBCards(session);
-}).triggerAction({matches: /^showcards/i});
+
+// TODO: test this for restarting conversation
+// Send welcome when conversation with bot is started, by initiating the root dialog
+bot.on('conversationUpdate', function (message) {
+    if (message.membersAdded) {
+        message.membersAdded.forEach(function (identity) {
+            if (identity.id === message.address.bot.id) {
+                bot.send(new builder.Message()
+                .address(message.address)
+                .text("Say Hi!"));
+                // bot.beginDialog(message.address, '/');
+            }
+        });
+    }
+});
+
+
+// Middle ware
+bot.use({
+    botbuilder: function (session, next) {
+        var text = session.message.text;
+        console.log(session.message);
+        next();
+    }
+});
+
 
 // Enable Conversation Data persistence
 bot.set('persistConversationData', true);
@@ -46,13 +102,6 @@ bot.set('localizerSettings', {
     defaultLocale: 'en'
 });
 
-bot.use({
-    botbuilder: function (session, next) {
-        var text = session.message.text;
-        console.log(session.message);
-        next();
-    }
-});
 
 // Connector listener wrapper to capture site url
 var connectorListener = connector.listen();
@@ -65,6 +114,7 @@ function listen() {
         connectorListener(req, res);
     };
 }
+
 
 // Other wrapper functions
 function beginDialog(address, dialogId, dialogArgs) {
@@ -98,17 +148,37 @@ function createCard(session, dbCard){
     return heroCard;
 }
 
-function getDBCards(session){
+// DB functions
+function getRootCards(session){
+    console.log('get all root cards');
+    var query = 'select from CardContent where parentId = "root" and orgId = "hbdemo" and status = "live" and templateType != "newarrivals_card"';
+    getDBCards(session, query);
+}
+
+function getCardsByName(session, productName){
+    console.log('get cards by name');
+    var query = 'select from CardContent where orgId = "hbdemo" and status = "live" and templateTyep = "product_card" and title.toLowerCase() containsText = ' + productName;
+    getDBCards(session, query);
+}
+
+function getCardsByProductId(session, productId){
+    console.log('get cards by id');
+    var query = 'select from CardContent where orgId = "hbdemo" and status = "live" and templateType ="product_card" and productId = ' + productId;
+    getDBCards(session, query);
+}
+
+function getDBCards(session, query){
     db.open().then(function() {
         console.log('executing query');
-        return db.query('select from CardContent where parentId = "root" and orgId = "hbdemo" and status = "live" and templateType != "newarrivals_card"');
+        return db.query(query);
      }).then(function(res){
         createCarouselAndSend(session, res);
         db.close().then(function(){
            console.log('closed');
         });
-     });
+    });
 }
+
 
 function createCarouselAndSend(session, dbCards){
     var heroCards = [];
