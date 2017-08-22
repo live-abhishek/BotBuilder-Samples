@@ -14,7 +14,7 @@ var server = OrientDB({
     "username": process.env.ORIENTDB_USERNAME,
     "password": process.env.ORIENTDB_PASSWORD
   });
-  
+var db = server.use(process.env.ORIENTDB_DBNAME);
 
 // Welcome Dialog
 var MainOptions = {
@@ -23,7 +23,6 @@ var MainOptions = {
 };
 
 var bot = new builder.UniversalBot(connector, [function (session) {
-    var db = server.use(process.env.ORIENTDB_DBNAME);
     session.send('Test Echo ' + session.message.text);
 
     // if (localizedRegex(session, [MainOptions.Shop]).test(session.message.text)) {
@@ -41,20 +40,11 @@ var bot = new builder.UniversalBot(connector, [function (session) {
 );
 
 bot.dialog('showcards', function(session){
-    var msg = new builder.Message(session);
-
-    var heroCards = [];
-    var dbCards = getDBCards();
-    for(var i = 0; i < dbCards.length; i++){
-        heroCards.push(createCard(dbCards[i]));
-    }
-    msg.attachmentLayout(builder.AttachmentLayout.carousel);
-    msg.attachments(heroCards);
-    session.send(msg).endDialog();
+    getDBCards(session);
 }).triggerAction({matches: /^showcards/i});
 
 // Enable Conversation Data persistence
-bot.set('persistConversationData', false);
+bot.set('persistConversationData', true);
 
 // Set default locale
 bot.set('localizerSettings', {
@@ -92,14 +82,14 @@ function sendMessage(message) {
     bot.send(message);
 }
 
-function createCard(dbCard){
-    var cardActions = []
+function createCard(session, dbCard){
+    var cardActions = [];
     if(dbCard.callToActions){
         for( var i = 0; i < dbCard.callToActions.length; i++ ){
             var cardAction;
             var cta = dbCard.callToActions[i];
             if(cta.type === 'postback'){
-                builder.CardAction.imBack(session, cta.title, cta.title);
+                cardAction = builder.CardAction.imBack(session, cta.title, cta.title);
             } else if(cta.type === 'web_url'){
                 cardAction = builder.CardAction.openUrl(session, cta.url, cta.title);
             }
@@ -107,26 +97,35 @@ function createCard(dbCard){
         }
     }
     var heroCard = new builder.HeroCard(session)
-    .title(dbCard.title)
-    .subtitle(dbCard.subtitle)
+    .title(dbCard.title || '')
+    .subtitle(dbCard.subtitle || '')
     .images([builder.CardImage.create(session, 'https://hashblu-static.s3.amazonaws.com/'+dbCard.imageUrls[0])])
-    .buttons([cardActions]);
+    .buttons(cardActions);
     
     return heroCard;
 }
 
-function getDBCards(){
-    var dbcards;
+function getDBCards(session){
     db.open().then(function() {
+        console.log('executing query');
         return db.query('select from CardContent where parentId = "root" and orgId = "shopninja" and status = "live" and templateType != "newarrivals_card"');
      }).then(function(res){
-        dbCards = res;
+        createCarouselAndSend(session, res);
         db.close().then(function(){
            console.log('closed');
         });
-     }).finally(function(){
-       return dbCards;
      });
+}
+
+function createCarouselAndSend(session, dbCards){
+    var heroCards = [];
+    var msg = new builder.Message(session);
+    for(var i = 0; i < 2; i++){
+        heroCards.push(createCard(session, dbCards[i]));
+    }
+    msg.attachmentLayout(builder.AttachmentLayout.carousel);
+    msg.attachments(heroCards);
+    session.send(msg).endDialog();
 }
 
 module.exports = {
