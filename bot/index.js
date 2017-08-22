@@ -81,6 +81,7 @@ bot.dialog('showcards', function(session){
             builder.CardAction.imBack(session, "buy classic white t-shirt", "Buy")
         ])
     ]);
+    session.send(msg).endDialog();
 }).triggerAction({matches: /^showcards/i});
 
 // Enable Conversation Data persistence
