@@ -18,7 +18,7 @@ var db = server.use(process.env.ORIENTDB_DBNAME);
 
 
 var bot = new builder.UniversalBot(connector, [function (session) {
-    if(session.message.text === 'Hi'){
+    if(session.message.text.toLowerCase() === 'hi'){
         getRootCards(session);
     }
 }]);
@@ -30,10 +30,12 @@ bot.dialog('search', [
         builder.Prompts.choice(session, "Search By", ["name","id"], { listStyle: builder.ListStyle.auto });
     },
     function(session, results){
-        session.dialogData.searchChoice.type = results.response;
+        console.log(results.response);
+        session.dialogData.searchChoice = {};
+        session.dialogData.searchChoice.type = results.response.entity;
         if(session.dialogData.searchChoice.type === 'name'){
             builder.Prompts.text(session, "Enter name of the product");
-        } else if(session.dialogData.searchChoice === 'id'){
+        } else if(session.dialogData.searchChoice.type === 'id'){
             builder.Prompts.text(session, "Enter id of the product");
         } else {
             session.endConversation("could not understand the choice");
@@ -41,12 +43,12 @@ bot.dialog('search', [
     },
     function(session, results){
         if(results.response){
-            session.dialog.searchChoice.searchTerm = results.response;
+            session.dialogData.searchChoice.searchTerm = results.response;
         }
-        if(session.dialog.searchChoice.searchTerm){
-            var searchType = session.dialog.searchChoice.type;
-            var searchTerm = session.dialog.searchChoice.searchTerm;
-            if(seachType === 'name'){
+        if(session.dialogData.searchChoice.searchTerm){
+            var searchType = session.dialogData.searchChoice.type;
+            var searchTerm = session.dialogData.searchChoice.searchTerm;
+            if(searchType === 'name'){
                 getCardsByName(session, searchTerm);
             } else if(searchType === 'id'){
                 getCardsByProductId(session, searchTerm);
@@ -57,7 +59,7 @@ bot.dialog('search', [
 
     }
 ])
-.triggerAction({matches: /^search^/i})
+.triggerAction({matches: /^search$/i})
 .endConversationAction(
     "endOrderDinner", "Bye!",
     {
@@ -157,13 +159,13 @@ function getRootCards(session){
 
 function getCardsByName(session, productName){
     console.log('get cards by name');
-    var query = 'select from CardContent where orgId = "hbdemo" and status = "live" and templateTyep = "product_card" and title.toLowerCase() containsText = ' + productName;
+    var query = 'select from CardContent where orgId = "hbdemo" and status = "live" and templateType = "product_card" and title.toLowerCase() containsText "' + productName + '"';
     getDBCards(session, query);
 }
 
 function getCardsByProductId(session, productId){
     console.log('get cards by id');
-    var query = 'select from CardContent where orgId = "hbdemo" and status = "live" and templateType ="product_card" and productId = ' + productId;
+    var query = 'select from CardContent where orgId = "hbdemo" and status = "live" and templateType ="product_card" and productId = "' + productId + '"';
     getDBCards(session, query);
 }
 
