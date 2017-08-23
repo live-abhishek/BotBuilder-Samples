@@ -19,6 +19,7 @@ var db = server.use(process.env.ORIENTDB_DBNAME);
 
 var bot = new builder.UniversalBot(connector, [function (session) {
     if(session.message.text.toLowerCase() === 'hi'){
+        session.send("Select any one of the cards");
         getRootCards(session);
     }
 }]);
@@ -26,8 +27,7 @@ var bot = new builder.UniversalBot(connector, [function (session) {
 
 bot.dialog('search', [
     function(session){
-        session.send("Select any one of the cards");
-        builder.Prompts.choice(session, "Search By", ["name","id"], { listStyle: builder.ListStyle.auto });
+        builder.Prompts.choice(session, "Search By", ["name","id","barcode"], { listStyle: builder.ListStyle.auto });
     },
     function(session, results){
         console.log(results.response);
@@ -37,7 +37,10 @@ bot.dialog('search', [
             builder.Prompts.text(session, "Enter name of the product");
         } else if(session.dialogData.searchChoice.type === 'id'){
             builder.Prompts.text(session, "Enter id of the product");
-        } else {
+        } else if(session.dialogData.searchChoice.type === 'barcode'){
+            builder.Prompts.attachment(session, "Upload barcode image");
+        }
+         else {
             session.endConversation("could not understand the choice");
         }
     },
@@ -48,15 +51,15 @@ bot.dialog('search', [
         if(session.dialogData.searchChoice.searchTerm){
             var searchType = session.dialogData.searchChoice.type;
             var searchTerm = session.dialogData.searchChoice.searchTerm;
+            session.sendTyping();
             if(searchType === 'name'){
                 getCardsByName(session, searchTerm);
             } else if(searchType === 'id'){
                 getCardsByProductId(session, searchTerm);
+            } else if(searchType === 'barcode'){
+                getRandomCard(session);
             }
         }
-
-        session.endDialog('Search complete!');
-
     }
 ])
 .triggerAction({matches: /^search$/i})
@@ -169,6 +172,12 @@ function getCardsByProductId(session, productId){
     getDBCards(session, query);
 }
 
+function getRandomCard(session){
+    console.log('get a random card');
+    var query = 'select from CardContent where orgId = "hbdemo" and status = "live" and templateType = "product_card" limit 1';
+    getDBCards(session, query);
+}
+
 function getDBCards(session, query){
     db.open().then(function() {
         console.log('executing query');
@@ -183,14 +192,19 @@ function getDBCards(session, query){
 
 
 function createCarouselAndSend(session, dbCards){
-    var heroCards = [];
     var msg = new builder.Message(session);
-    for(var i = 0; i < dbCards.length; i++){
-        heroCards.push(createCard(session, dbCards[i]));
+    if(dbCards.length > 0){
+        var heroCards = [];
+        for(var i = 0; i < dbCards.length; i++){
+            heroCards.push(createCard(session, dbCards[i]));
+        }
+        msg.attachmentLayout(builder.AttachmentLayout.carousel);
+        msg.attachments(heroCards);
+        session.send(msg).endDialog();
+    } else {
+        session.send("No products found!").endDialog();
     }
-    msg.attachmentLayout(builder.AttachmentLayout.carousel);
-    msg.attachments(heroCards);
-    session.send(msg).endDialog();
+    
 }
 
 module.exports = {
