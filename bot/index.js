@@ -146,7 +146,7 @@ function createCard(session, dbCard){
     }
     var heroCard = new builder.HeroCard(session)
     .title(dbCard.title || '')
-    .subtitle(dbCard.subtitle || '')
+    .subtitle(dbCard.subTitle || '')
     .images([builder.CardImage.create(session, 'https://hashblu-static.s3.amazonaws.com/'+dbCard.imageUrls[0])])
     .buttons(cardActions);
     
