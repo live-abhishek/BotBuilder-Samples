@@ -21,13 +21,16 @@ var bot = new builder.UniversalBot(connector, [function (session) {
     if(session.message.text.toLowerCase() === 'hi'){
         session.send("Select any one of the cards");
         getRootCards(session);
+    } else {
+        session.send("Could not understand! Say Hi!");
     }
+
 }]);
 
 
 bot.dialog('search', [
     function(session){
-        builder.Prompts.choice(session, "Search By", ["name","id","barcode"], { listStyle: builder.ListStyle.auto });
+        builder.Prompts.choice(session, "Search By", ["name","id","barcode"], { listStyle: builder.ListStyle.button });
     },
     function(session, results){
         console.log(results.response);
@@ -78,9 +81,7 @@ bot.on('conversationUpdate', function (message) {
     if (message.membersAdded) {
         message.membersAdded.forEach(function (identity) {
             if (identity.id === message.address.bot.id) {
-                bot.send(new builder.Message()
-                .address(message.address)
-                .text("Say Hi!"));
+                getDBWelcomeMessage(message);
                 // bot.beginDialog(message.address, '/');
             }
         });
@@ -205,6 +206,21 @@ function createCarouselAndSend(session, dbCards){
         session.send("No products found!").endDialog();
     }
     
+}
+
+function getDBWelcomeMessage(message){
+    console.log('get Welcome message from DB');
+    var query = 'select template from ResponseTemplate where orgId="hbdemo" and templateId = "WELCOME"';
+    db.open().then(function() {
+        return db.query(query);
+    }).then(function(res){
+        bot.send(new builder.Message()
+        .address(message.address)
+        .text(res[0].template));
+        db.close().then(function(){
+            console.log('closed');
+         });
+    })
 }
 
 module.exports = {
