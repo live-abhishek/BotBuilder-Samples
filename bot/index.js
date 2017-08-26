@@ -27,6 +27,7 @@ var bot = new builder.UniversalBot(connector, [function (session) {
         session.send('Could understand the request. Select any one of the cards.')
     }
     getRootCards(function (res) {
+        session.sendTyping();
         createCarouselAndSend(session, res);
     });
 }]);
@@ -43,9 +44,18 @@ bot.dialog('searchByBarcode', [
         session.send(msg);
     },
     function (session, result) {
-        getRandomCard(function (dbCards) {
-            createCarouselAndSend(session, dbCards);
-        });
+        // not using the result right now
+        builder.Prompts.choice(session, "It seems to be an EAN853. Is that correct?", ["Yes", "No"], { listStyle: builder.ListStyle.button });
+    },
+    function (session, result) {
+        if (result.response.entity.toLowerCase() === 'yes') {
+            session.sendTyping();
+            getRandomCard(function (dbCards) {
+                createCarouselAndSend(session, dbCards);
+            });
+        } else {
+            session.replaceDialog('searchByBarcode');
+        }
     }
 ]);
 
@@ -61,6 +71,7 @@ bot.dialog('searchByProductId', [
         session.send(msg);
     },
     function (session, result) {
+        session.sendTyping();
         getCardsByProductId(result.response, function (dbCards) {
             createCarouselAndSend(session, dbCards);
         });
@@ -71,6 +82,7 @@ bot.dialog('searchByName', [
         builder.Prompts.text(session, "Enter name of the product");
     },
     function (session, result) {
+        session.sendTyping();
         getCardsByName(searchTerm, function (dbCards) {
             createCarouselAndSend(session, dbCards);
         });
@@ -83,7 +95,6 @@ bot.dialog('search', [
         builder.Prompts.choice(session, "Search By", ["Name", "Product Id", "Barcode"], { listStyle: builder.ListStyle.button });
     },
     function (session, results) {
-        console.log(results.response);
         session.dialogData.searchChoice = {};
         session.dialogData.searchChoice.type = results.response.entity;
         if (session.dialogData.searchChoice.type === 'Name') {
