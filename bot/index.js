@@ -24,12 +24,13 @@ var bot = new builder.UniversalBot(connector, [function (session) {
         // do nothing
     }
     else {
+        session.sendTyping();
         getDBMessage('INVALID_REQUEST', function (responseTemplates) {
             session.send(responseTemplates[0].template);
         });
     }
+    session.sendTyping();
     getRootCards(function (res) {
-        session.sendTyping();
         createCarouselAndSend(session, res);
     });
 }]);
@@ -122,6 +123,7 @@ bot.dialog('search', [
     );
 
 bot.dialog('actuators', function (session) {
+    session.sendTyping();
     getCardsByParentName('search', function (dbCards) {
         createCarouselAndSend(session, dbCards);
     })
@@ -129,42 +131,49 @@ bot.dialog('actuators', function (session) {
     .triggerAction({ matches: /^actuators?$/i });
 
 bot.dialog('electrical actuators', function (session) {
+    session.sendTyping();
     getCardsByParentName('electrical actuators', function (dbCards) {
         createCarouselAndSend(session, dbCards);
     })
 }).triggerAction({ matches: /^electrical actuators?$/i });;
 
 bot.dialog('electronic electrical actuators', function (session) {
+    session.sendTyping();
     getCardsByParentName('electronic actuators', function (dbCards) {
         createCarouselAndSend(session, dbCards);
     })
 }).triggerAction({ matches: /^electronic actuators?$/i });
 
 bot.dialog('EAN853', function (session) {
+    session.sendTyping();
     getCardsByTitle('EAN853', function (dbCards) {
         createCarouselAndSend(session, dbCards);
     })
 }).triggerAction({ matches: /^EAN853$/i });
 
 bot.dialog('EAN853FAQ', function (session) {
+    session.sendTyping();
     getCardsByParentName('EAN853', function (dbCards) {
         createCarouselAndSend(session, dbCards);
     })
 }).triggerAction({ matches: /^EAN853 FAQ/i });
 
 bot.dialog('EAN853ElectricalIssue', function (session) {
+    session.sendTyping();
     getCardsByParentName('Electrical Issues', function (dbCards) {
         createCarouselAndSend(session, dbCards);
     })
 }).triggerAction({ matches: /^Electrical Issues?/i });
 
 bot.dialog('ElectricalIssues-Type2', function (session) {
+    session.sendTyping();
     getCardsByParentName('Electrical Issues - Type 2', function (dbCards) {
         createCarouselAndSend(session, dbCards);
     })
 }).triggerAction({ matches: /^Electrical Issues - Type 2/i });
 
 bot.dialog('SubTypeB', function (session) {
+    session.sendTyping();
     getCardsByParentName('Sub Type B', function (dbCards) {
         createCarouselAndSend(session, dbCards);
     })
