@@ -24,7 +24,9 @@ var bot = new builder.UniversalBot(connector, [function (session) {
         // do nothing
     }
     else {
-        session.send('Could understand the request. Select any one of the cards.')
+        getDBMessage('INVALID_REQUEST', function (responseTemplates) {
+            session.send(responseTemplates[0].template);
+        });
     }
     getRootCards(function (res) {
         session.sendTyping();
@@ -71,12 +73,13 @@ bot.dialog('searchByProductId', [
         session.send(msg);
     },
     function (session, result) {
-        session.sendTyping();
-        getCardsByProductId(result.response, function (dbCards) {
-            createCarouselAndSend(session, dbCards);
-        });
+        console.log(result.response);
+        if (result.response !== 'EAN853') {
+            session.send('This Product Id cannot be searched.');
+        }
+        session.endDialog();
     }
-])
+]);
 
 bot.dialog('searchByName', [
     function (session) {
@@ -88,16 +91,16 @@ bot.dialog('searchByName', [
 bot.dialog('search', [
 
     function (session) {
-        builder.Prompts.choice(session, "Search By", ["Name", "Product Id", "Barcode"], { listStyle: builder.ListStyle.button });
+        builder.Prompts.choice(session, "Search By", ["Search By Product name or description", "Search By Product Id", "Upload picture of Barcode of product"], { listStyle: builder.ListStyle.button });
     },
     function (session, results) {
         session.dialogData.searchChoice = {};
-        session.dialogData.searchChoice.type = results.response.entity;
-        if (session.dialogData.searchChoice.type === 'Name') {
+        session.dialogData.searchChoice.type = results.response.index;
+        if (session.dialogData.searchChoice.type == 0) {
             session.beginDialog('searchByName');
-        } else if (session.dialogData.searchChoice.type === 'Product Id') {
+        } else if (session.dialogData.searchChoice.type == 1) {
             session.beginDialog('searchByProductId');
-        } else if (session.dialogData.searchChoice.type === 'Barcode') {
+        } else if (session.dialogData.searchChoice.type == 2) {
             session.beginDialog('searchByBarcode');
         }
         else {
@@ -109,7 +112,7 @@ bot.dialog('search', [
         session.endDialog();
     }
 ])
-    .triggerAction({ matches: /^search$/i })
+    .triggerAction({ matches: /^search/i })
     .endConversationAction(
     "endSearch", "Bye!",
     {
@@ -119,29 +122,55 @@ bot.dialog('search', [
     );
 
 bot.dialog('actuators', function (session) {
-    getCardsByParentName('actuators', function (dbCards) {
+    getCardsByParentName('search', function (dbCards) {
         createCarouselAndSend(session, dbCards);
     })
 })
-    .triggerAction({ matches: /^actuators$/i });
+    .triggerAction({ matches: /^actuators?$/i });
 
 bot.dialog('electrical actuators', function (session) {
     getCardsByParentName('electrical actuators', function (dbCards) {
         createCarouselAndSend(session, dbCards);
     })
-}).triggerAction({ matches: /^electrical actuators$/i });;
+}).triggerAction({ matches: /^electrical actuators?$/i });;
 
 bot.dialog('electronic electrical actuators', function (session) {
-    getCardsByParentName('electronic electrical actuators', function (dbCards) {
+    getCardsByParentName('electronic actuators', function (dbCards) {
         createCarouselAndSend(session, dbCards);
     })
-}).triggerAction({ matches: /^electronic electrical actuators$/i });
+}).triggerAction({ matches: /^electronic actuators?$/i });
 
 bot.dialog('EAN853', function (session) {
-    getCardsByParentName('EAN853', function (dbCards) {
+    getCardsByTitle('EAN853', function (dbCards) {
         createCarouselAndSend(session, dbCards);
     })
 }).triggerAction({ matches: /^EAN853$/i });
+
+bot.dialog('EAN853FAQ', function (session) {
+    getCardsByParentName('EAN853', function (dbCards) {
+        createCarouselAndSend(session, dbCards);
+    })
+}).triggerAction({ matches: /^EAN853 FAQ/i });
+
+bot.dialog('EAN853ElectricalIssue', function (session) {
+    getCardsByParentName('Electrical Issues', function (dbCards) {
+        createCarouselAndSend(session, dbCards);
+    })
+}).triggerAction({ matches: /^Electrical Issues?/i });
+
+bot.dialog('ElectricalIssues-Type2', function (session) {
+    getCardsByParentName('Electrical Issues - Type 2', function (dbCards) {
+        createCarouselAndSend(session, dbCards);
+    })
+}).triggerAction({ matches: /^Electrical Issues - Type 2/i });
+
+bot.dialog('SubTypeB', function (session) {
+    getCardsByParentName('Sub Type B', function (dbCards) {
+        createCarouselAndSend(session, dbCards);
+    })
+}).triggerAction({ matches: /^Sub Type B?/i });
+
+
 
 // TODO: test this for restarting conversation
 // Send welcome when conversation with bot is started, by initiating the root dialog
@@ -149,7 +178,7 @@ bot.on('conversationUpdate', function (message) {
     if (message.membersAdded) {
         message.membersAdded.forEach(function (identity) {
             if (identity.id === message.address.bot.id) {
-                getDBWelcomeMessage(function (res) {
+                getDBMessage('WELCOME', function (res) {
                     bot.send(new builder.Message()
                         .address(message.address)
                         .text(res[0].template));
@@ -210,7 +239,7 @@ function createCard(session, dbCard) {
             var cardAction;
             var cta = dbCard.callToActions[i];
             if (cta.type === 'postback') {
-                cardAction = builder.CardAction.imBack(session, dbCard.title, dbCard.title);
+                cardAction = builder.CardAction.imBack(session, cta.title, cta.title);
             } else if (cta.type === 'web_url') {
                 cardAction = builder.CardAction.openUrl(session, cta.url, cta.title);
             }
@@ -234,26 +263,32 @@ function getRootCards(callback) {
 }
 
 function getCardsByName(productName, callback) {
-    console.log('get cards by name');
+    console.log('get cards by name: ' + productName);
     var query = 'select from CardContent where orgId="' + orgId + '" and status = "live" and templateType = "product_card" and title.toLowerCase() containsText "' + productName + '"';
     getDBCards(query, callback);
 }
 
+function getCardsByTitle(productTitle, callback) {
+    console.log('get cards by title: ' + productTitle);
+    var query = 'select from CardContent where orgId="' + orgId + '" and status = "live" and title.toLowerCase() containsText "' + productTitle.toLowerCase() + '"';
+    getDBCards(query, callback);
+}
+
 function getCardsByProductId(productId, callback) {
-    console.log('get cards by id');
+    console.log('get cards by id: ' + productId);
     var query = 'select from CardContent where orgId="' + orgId + '" and status = "live" and templateType ="product_card" and productId = "' + productId + '"';
     getDBCards(query, callback);
 }
 
 function getRandomCard(callback) {
     console.log('get a random card');
-    var query = 'select from CardContent where orgId="' + orgId + '" and status = "live" and templateType = "product_card" limit 1';
+    var query = 'select from CardContent where orgId="' + orgId + '" and status = "live" and title="EAN853" limit 1';
     getDBCards(query, callback);
 }
 
 function getCardsByParentName(parentName, callback) {
-    console.log('get cards by parent name');
-    var query = 'select from CardContent where orgId = "' + orgId + '" and parentId IN (select id from CardContent where orgId = "' + orgId + '" and title.toLowerCase()="' + parentName.toLowerCase() + '")';
+    console.log('get cards by parent name: ' + parentName);
+    var query = 'select from CardContent where orgId = "' + orgId + '" and status = "live" and parentId IN (select id from CardContent where orgId = "' + orgId + '" and title.toLowerCase()="' + parentName.toLowerCase() + '")';
     getDBCards(query, callback);
 }
 
@@ -285,13 +320,13 @@ function createCarouselAndSend(session, dbCards) {
     }
 }
 
-function getDBWelcomeMessage(callback) {
-    console.log('get Welcome message from DB');
-    var query = 'select template from ResponseTemplate where orgId="' + orgId + '" and templateId = "WELCOME"';
+function getDBMessage(templateId, callback) {
+    console.log('get message from DB: ' + templateId);
+    var query = 'select template from ResponseTemplate where orgId="' + orgId + '" and templateId = "' + templateId + '"';
     db.open().then(function () {
         return db.query(query);
-    }).then(function (res) {
-        callback(res);
+    }).then(function (responseTemplates) {
+        callback(responseTemplates);
         db.close().then(function () {
             console.log('closed');
         });
