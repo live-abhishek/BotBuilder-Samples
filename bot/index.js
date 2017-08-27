@@ -38,13 +38,6 @@ var bot = new builder.UniversalBot(connector, [function (session) {
 bot.dialog('searchByBarcode', [
     function (session) {
         builder.Prompts.attachment(session, "Upload barcode image");
-        var msg = new builder.Message(session)
-            .suggestedActions(builder.SuggestedActions.create(session, [
-                builder.CardAction.imBack(session, "search", "Search"),
-                builder.CardAction.imBack(session, "cancel", "Cancel")
-            ]
-            ));
-        session.send(msg);
     },
     function (session, result) {
         // not using the result right now
@@ -65,13 +58,6 @@ bot.dialog('searchByBarcode', [
 bot.dialog('searchByProductId', [
     function (session) {
         builder.Prompts.text(session, "Enter id of the product");
-        var msg = new builder.Message(session)
-            .suggestedActions(builder.SuggestedActions.create(session, [
-                builder.CardAction.imBack(session, "search", "Search"),
-                builder.CardAction.imBack(session, "cancel", "Cancel")
-            ]
-            ));
-        session.send(msg);
     },
     function (session, result) {
         console.log(result.response);
