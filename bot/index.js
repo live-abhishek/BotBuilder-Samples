@@ -89,16 +89,16 @@ bot.dialog('searchByName', [
 bot.dialog('search', [
 
     function (session) {
-        builder.Prompts.choice(session, "Search By", ["Name", "Product Id", "Barcode"], { listStyle: builder.ListStyle.button });
+        builder.Prompts.choice(session, "Search By", ["Search By Product name or description", "Search By Product Id", "Upload picture of Barcode of product"], { listStyle: builder.ListStyle.button });
     },
     function (session, results) {
         session.dialogData.searchChoice = {};
-        session.dialogData.searchChoice.type = results.response.entity;
-        if (session.dialogData.searchChoice.type === 'Name') {
+        session.dialogData.searchChoice.type = results.response.index;
+        if (session.dialogData.searchChoice.type == 0) {
             session.beginDialog('searchByName');
-        } else if (session.dialogData.searchChoice.type === 'Product Id') {
+        } else if (session.dialogData.searchChoice.type == 1) {
             session.beginDialog('searchByProductId');
-        } else if (session.dialogData.searchChoice.type === 'Barcode') {
+        } else if (session.dialogData.searchChoice.type == 2) {
             session.beginDialog('searchByBarcode');
         }
         else {
@@ -110,7 +110,7 @@ bot.dialog('search', [
         session.endDialog();
     }
 ])
-    .triggerAction({ matches: /^search$/i })
+    .triggerAction({ matches: /^search/i })
     .endConversationAction(
     "endSearch", "Bye!",
     {
@@ -119,24 +119,24 @@ bot.dialog('search', [
     }
     );
 
-// bot.dialog('actuators', function (session) {
-//     getCardsByParentName('search', function (dbCards) {
-//         createCarouselAndSend(session, dbCards);
-//     })
-// })
-//     .triggerAction({ matches: /^actuators?$/i });
+bot.dialog('actuators', function (session) {
+    getCardsByParentName('search', function (dbCards) {
+        createCarouselAndSend(session, dbCards);
+    })
+})
+    .triggerAction({ matches: /^actuators?$/i });
 
 bot.dialog('electrical actuators', function (session) {
     getCardsByParentName('electrical actuators', function (dbCards) {
         createCarouselAndSend(session, dbCards);
     })
-}).triggerAction({ matches: /^electrical actuators?|actuators?$/i });;
+}).triggerAction({ matches: /^electrical actuators?$/i });;
 
 bot.dialog('electronic electrical actuators', function (session) {
-    getCardsByParentName('electronic electrical actuators', function (dbCards) {
+    getCardsByParentName('electronic actuators', function (dbCards) {
         createCarouselAndSend(session, dbCards);
     })
-}).triggerAction({ matches: /^electronic electrical actuators?|electronic actuators?$/i });
+}).triggerAction({ matches: /^electronic actuators?$/i });
 
 bot.dialog('EAN853', function (session) {
     getCardsByTitle('EAN853', function (dbCards) {
@@ -144,11 +144,30 @@ bot.dialog('EAN853', function (session) {
     })
 }).triggerAction({ matches: /^EAN853$/i });
 
-bot.dialog('EAN853Issue', function (session) {
+bot.dialog('EAN853FAQ', function (session) {
     getCardsByParentName('EAN853', function (dbCards) {
         createCarouselAndSend(session, dbCards);
     })
-}).triggerAction({ matches: /^EAN853-I/i });
+}).triggerAction({ matches: /^EAN853 FAQ/i });
+
+bot.dialog('EAN853ElectricalIssue', function (session) {
+    getCardsByParentName('Electrical Issues', function (dbCards) {
+        createCarouselAndSend(session, dbCards);
+    })
+}).triggerAction({ matches: /^Electrical Issues?/i });
+
+bot.dialog('ElectricalIssues-Type2', function (session) {
+    getCardsByParentName('Electrical Issues - Type 2', function (dbCards) {
+        createCarouselAndSend(session, dbCards);
+    })
+}).triggerAction({ matches: /^Electrical Issues - Type 2/i });
+
+bot.dialog('SubTypeB', function (session) {
+    getCardsByParentName('Sub Type B', function (dbCards) {
+        createCarouselAndSend(session, dbCards);
+    })
+}).triggerAction({ matches: /^Sub Type B?/i });
+
 
 
 // TODO: test this for restarting conversation
@@ -218,7 +237,7 @@ function createCard(session, dbCard) {
             var cardAction;
             var cta = dbCard.callToActions[i];
             if (cta.type === 'postback') {
-                cardAction = builder.CardAction.imBack(session, cta.title, dbCard.title);
+                cardAction = builder.CardAction.imBack(session, cta.title, cta.title);
             } else if (cta.type === 'web_url') {
                 cardAction = builder.CardAction.openUrl(session, cta.url, cta.title);
             }
@@ -267,7 +286,7 @@ function getRandomCard(callback) {
 
 function getCardsByParentName(parentName, callback) {
     console.log('get cards by parent name');
-    var query = 'select from CardContent where orgId = "' + orgId + '" and parentId IN (select id from CardContent where orgId = "' + orgId + '" and title.toLowerCase()="' + parentName.toLowerCase() + '")';
+    var query = 'select from CardContent where orgId = "' + orgId + '" and status = "live" and parentId IN (select id from CardContent where orgId = "' + orgId + '" and title.toLowerCase()="' + parentName.toLowerCase() + '")';
     getDBCards(query, callback);
 }
 
