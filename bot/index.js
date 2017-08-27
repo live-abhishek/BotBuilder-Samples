@@ -45,7 +45,7 @@ bot.dialog('searchByBarcode', [
     },
     function (session, result) {
         // not using the result right now
-        builder.Prompts.choice(session, "It seems to be an EAN853. Is that correct?", ["Yes", "No"], { listStyle: builder.ListStyle.button });
+        builder.Prompts.choice(session, "It seems to be an EAN853. Is that correct?", ["No", "Yes"], { listStyle: builder.ListStyle.button });
     },
     function (session, result) {
         if (result.response.entity.toLowerCase() === 'yes') {
@@ -77,20 +77,16 @@ bot.dialog('searchByProductId', [
         });
     }
 ])
+
 bot.dialog('searchByName', [
     function (session) {
-        builder.Prompts.text(session, "Enter name of the product");
-    },
-    function (session, result) {
-        session.sendTyping();
-        getCardsByName(searchTerm, function (dbCards) {
-            createCarouselAndSend(session, dbCards);
-        });
+        builder.Prompts.text(session, 'Enter name of product');
     }
 ]);
 
 
 bot.dialog('search', [
+
     function (session) {
         builder.Prompts.choice(session, "Search By", ["Name", "Product Id", "Barcode"], { listStyle: builder.ListStyle.button });
     },
@@ -105,11 +101,12 @@ bot.dialog('search', [
             session.beginDialog('searchByBarcode');
         }
         else {
-            session.endConversation("could not understand the choice");
+            session.send("Could not understand the choice. Choose one of the cards.");
+            session.replaceDialog('search');
         }
     },
     function (session) {
-        session.replaceDialog('search');
+        session.endDialog();
     }
 ])
     .triggerAction({ matches: /^search$/i })
@@ -121,6 +118,30 @@ bot.dialog('search', [
     }
     );
 
+bot.dialog('actuators', function (session) {
+    getCardsByParentName('actuators', function (dbCards) {
+        createCarouselAndSend(session, dbCards);
+    })
+})
+    .triggerAction({ matches: /^actuators$/i });
+
+bot.dialog('electrical actuators', function (session) {
+    getCardsByParentName('electrical actuators', function (dbCards) {
+        createCarouselAndSend(session, dbCards);
+    })
+}).triggerAction({ matches: /^electrical actuators$/i });;
+
+bot.dialog('electronic electrical actuators', function (session) {
+    getCardsByParentName('electronic electrical actuators', function (dbCards) {
+        createCarouselAndSend(session, dbCards);
+    })
+}).triggerAction({ matches: /^electronic electrical actuators$/i });
+
+bot.dialog('EAN853', function (session) {
+    getCardsByParentName('EAN853', function (dbCards) {
+        createCarouselAndSend(session, dbCards);
+    })
+}).triggerAction({ matches: /^EAN853$/i });
 
 // TODO: test this for restarting conversation
 // Send welcome when conversation with bot is started, by initiating the root dialog
@@ -189,7 +210,7 @@ function createCard(session, dbCard) {
             var cardAction;
             var cta = dbCard.callToActions[i];
             if (cta.type === 'postback') {
-                cardAction = builder.CardAction.imBack(session, cta.title, cta.title);
+                cardAction = builder.CardAction.imBack(session, dbCard.title, dbCard.title);
             } else if (cta.type === 'web_url') {
                 cardAction = builder.CardAction.openUrl(session, cta.url, cta.title);
             }
@@ -231,7 +252,8 @@ function getRandomCard(callback) {
 }
 
 function getCardsByParentName(parentName, callback) {
-    var query = 'select from CardContent where orgId = "' + orgId + '" and parentId IN (select id from CardContent where orgId = "' + orgId + '" and title="' + parentName + '")';
+    console.log('get cards by parent name');
+    var query = 'select from CardContent where orgId = "' + orgId + '" and parentId IN (select id from CardContent where orgId = "' + orgId + '" and title.toLowerCase()="' + parentName.toLowerCase() + '")';
     getDBCards(query, callback);
 }
 
