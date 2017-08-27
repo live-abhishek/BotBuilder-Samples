@@ -24,7 +24,9 @@ var bot = new builder.UniversalBot(connector, [function (session) {
         // do nothing
     }
     else {
-        session.send('Could understand the request. Select any one of the cards.')
+        getDBMessage('INVALID_REQUEST', function (responseTemplates) {
+            session.send(responseTemplates[0].template);
+        });
     }
     getRootCards(function (res) {
         session.sendTyping();
@@ -176,7 +178,7 @@ bot.on('conversationUpdate', function (message) {
     if (message.membersAdded) {
         message.membersAdded.forEach(function (identity) {
             if (identity.id === message.address.bot.id) {
-                getDBWelcomeMessage(function (res) {
+                getDBMessage('WELCOME', function (res) {
                     bot.send(new builder.Message()
                         .address(message.address)
                         .text(res[0].template));
@@ -261,19 +263,19 @@ function getRootCards(callback) {
 }
 
 function getCardsByName(productName, callback) {
-    console.log('get cards by name');
+    console.log('get cards by name: ' + productName);
     var query = 'select from CardContent where orgId="' + orgId + '" and status = "live" and templateType = "product_card" and title.toLowerCase() containsText "' + productName + '"';
     getDBCards(query, callback);
 }
 
 function getCardsByTitle(productTitle, callback) {
-    console.log('get cards by title');
+    console.log('get cards by title: ' + productTitle);
     var query = 'select from CardContent where orgId="' + orgId + '" and status = "live" and title.toLowerCase() containsText "' + productTitle.toLowerCase() + '"';
     getDBCards(query, callback);
 }
 
 function getCardsByProductId(productId, callback) {
-    console.log('get cards by id');
+    console.log('get cards by id: ' + productId);
     var query = 'select from CardContent where orgId="' + orgId + '" and status = "live" and templateType ="product_card" and productId = "' + productId + '"';
     getDBCards(query, callback);
 }
@@ -285,7 +287,7 @@ function getRandomCard(callback) {
 }
 
 function getCardsByParentName(parentName, callback) {
-    console.log('get cards by parent name');
+    console.log('get cards by parent name: ' + parentName);
     var query = 'select from CardContent where orgId = "' + orgId + '" and status = "live" and parentId IN (select id from CardContent where orgId = "' + orgId + '" and title.toLowerCase()="' + parentName.toLowerCase() + '")';
     getDBCards(query, callback);
 }
@@ -318,13 +320,13 @@ function createCarouselAndSend(session, dbCards) {
     }
 }
 
-function getDBWelcomeMessage(callback) {
-    console.log('get Welcome message from DB');
-    var query = 'select template from ResponseTemplate where orgId="' + orgId + '" and templateId = "WELCOME"';
+function getDBMessage(templateId, callback) {
+    console.log('get message from DB: ' + templateId);
+    var query = 'select template from ResponseTemplate where orgId="' + orgId + '" and templateId = "' + templateId + '"';
     db.open().then(function () {
         return db.query(query);
-    }).then(function (res) {
-        callback(res);
+    }).then(function (responseTemplates) {
+        callback(responseTemplates);
         db.close().then(function () {
             console.log('closed');
         });
