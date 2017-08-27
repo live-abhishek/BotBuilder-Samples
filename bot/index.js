@@ -282,7 +282,7 @@ function getCardsByProductId(productId, callback) {
 
 function getRandomCard(callback) {
     console.log('get a random card');
-    var query = 'select from CardContent where orgId="' + orgId + '" and status = "live" and templateType = "product_card" limit 1';
+    var query = 'select from CardContent where orgId="' + orgId + '" and status = "live" and title="EAN853" limit 1';
     getDBCards(query, callback);
 }
 
