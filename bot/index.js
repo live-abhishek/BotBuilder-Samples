@@ -60,7 +60,7 @@ bot.dialog('searchByProductId', [
     function (session, result) {
         console.log(result.response);
         if (result.response !== 'EAN853') {
-            session.send('This Product Id cannot be searched.');
+            session.send('Could not find any product');
         }
         session.endDialog();
     }
@@ -69,6 +69,9 @@ bot.dialog('searchByProductId', [
 bot.dialog('searchByName', [
     function (session) {
         builder.Prompts.text(session, 'Enter name of product');
+    },
+    function(session){
+        session.send('Could not find any product').endDialog();
     }
 ]);
 
