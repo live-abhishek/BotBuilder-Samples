@@ -17,11 +17,13 @@ var server = OrientDB({
 var db = server.use(process.env.ORIENTDB_DBNAME);
 var orgId = process.env.ORG_ID;
 
-
 var bot = new builder.UniversalBot(connector, [function (session) {
     var msgText = session.message.text.toLowerCase();
     if (msgText == '' || msgText == 'hi' || msgText == 'hello') {
-        // do nothing
+        session.sendTyping();
+        getRootCards(function (res) {
+            createCarouselAndSend(session, res);
+        });
     }
     else {
         session.sendTyping();
@@ -29,10 +31,6 @@ var bot = new builder.UniversalBot(connector, [function (session) {
             session.send(responseTemplates[0].template);
         });
     }
-    session.sendTyping();
-    getRootCards(function (res) {
-        createCarouselAndSend(session, res);
-    });
 }]);
 
 bot.dialog('searchByBarcode', [
@@ -197,24 +195,10 @@ bot.use({
 });
 
 
-// Enable Conversation Data persistence
-bot.set('persistConversationData', true);
-
-// Set default locale
-bot.set('localizerSettings', {
-    botLocalePath: './bot/locale',
-    defaultLocale: 'en'
-});
-
-
 // Connector listener wrapper to capture site url
 var connectorListener = connector.listen();
 function listen() {
     return function (req, res) {
-        // Capture the url for the hosted application
-        // We'll later need this url to create the checkout link 
-        var url = req.protocol + '://' + req.get('host');
-        siteUrl.save(url);
         connectorListener(req, res);
     };
 }
@@ -297,8 +281,15 @@ function getDBCards(query, callback) {
         callback(dbCards);
         db.close().then(function () {
             console.log('closed');
+        }).catch(function(err){
+            console.log('error while closing DB connection');
+            console.log(JSON.stringify(err));
         });
-    });
+    }).catch(function(err){
+        console.log('error while executing query');
+        console.log(query);
+        console.log(JSON.stringify(err));
+    });;
 }
 
 
@@ -326,8 +317,15 @@ function getDBMessage(templateId, callback) {
         callback(responseTemplates);
         db.close().then(function () {
             console.log('closed');
+        }).catch(function(err){
+            console.log('error while closing DB connection');
+            console.log(JSON.stringify(err));
         });
-    })
+    }).catch(function(err){
+        console.log('error while executing query');
+        console.log(query);
+        console.log(JSON.stringify(err));
+    });
 }
 
 module.exports = {
