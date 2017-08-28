@@ -17,7 +17,6 @@ var server = OrientDB({
 var db = server.use(process.env.ORIENTDB_DBNAME);
 var orgId = process.env.ORG_ID;
 
-
 var bot = new builder.UniversalBot(connector, [function (session) {
     var msgText = session.message.text.toLowerCase();
     if (msgText == '' || msgText == 'hi' || msgText == 'hello') {
@@ -197,24 +196,10 @@ bot.use({
 });
 
 
-// Enable Conversation Data persistence
-bot.set('persistConversationData', true);
-
-// Set default locale
-bot.set('localizerSettings', {
-    botLocalePath: './bot/locale',
-    defaultLocale: 'en'
-});
-
-
 // Connector listener wrapper to capture site url
 var connectorListener = connector.listen();
 function listen() {
     return function (req, res) {
-        // Capture the url for the hosted application
-        // We'll later need this url to create the checkout link 
-        var url = req.protocol + '://' + req.get('host');
-        siteUrl.save(url);
         connectorListener(req, res);
     };
 }

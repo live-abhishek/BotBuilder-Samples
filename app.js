@@ -17,12 +17,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Register your web app routes here
 app.get('/', function (req, res, next) {
-  res.render('index', { title: 'Contoso Flowers' });
+  res.render('index', { title: 'Hashblu Demo chatbot' });
 });
-
-// Register Checkout page
-// var checkout = require('./checkout');
-// app.use('/checkout', checkout);
 
 // Register Bot
 var bot = require('./bot');
@@ -34,8 +30,6 @@ app.use(function (req, res, next) {
   err.status = 404;
   next(err);
 });
-
-// Error handlers
 
 // Development error handler, will print stacktrace
 if (app.get('env') === 'development') {
