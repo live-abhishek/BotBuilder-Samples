@@ -78,7 +78,9 @@ bot.dialog('searchByName', [
 bot.dialog('search', [
 
     function (session) {
-        builder.Prompts.choice(session, "Search By", ["Search By Product name or description", "Search By Product Id", "Barcode photo of product"], { listStyle: builder.ListStyle.button });
+        getDBMessage('NAVIGATION_INTRO', function(responseTemplates){
+            builder.Prompts.choice(session, responseTemplates[0].template, ["Search By Product name or description", "Search By Product Id", "Barcode photo of product"], { listStyle: builder.ListStyle.button });
+        })
     },
     function (session, results) {
         session.dialogData.searchChoice = {};
