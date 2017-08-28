@@ -156,7 +156,7 @@ bot.dialog('ElectricalIssues-Type2', function (session) {
     getCardsByParentName('Electrical Issues - Type 2', function (dbCards) {
         createCarouselAndSend(session, dbCards);
     })
-}).triggerAction({ matches: /^Electrical Issues - Type 2/i });
+}).triggerAction({ matches: /^Electrical Type 2|Type 2/i });
 
 bot.dialog('SubTypeB', function (session) {
     session.sendTyping();
