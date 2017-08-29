@@ -79,6 +79,7 @@ bot.dialog('searchByName', [
 bot.dialog('search', [
 
     function (session) {
+        session.sendTyping();
         getDBMessage('NAVIGATION_INTRO', function(responseTemplates){
             builder.Prompts.choice(session, responseTemplates[0].template, ["Search By Product name or description", "Search By Product Id", "Barcode photo of product"], { listStyle: builder.ListStyle.button });
         })
@@ -243,45 +244,46 @@ function createCard(session, dbCard) {
 function getRootCards(callback) {
     console.log('get all root cards');
     var query = 'select from CardContent where parentId = "root" and orgId="' + orgId + '" and status = "live" and templateType != "newarrivals_card"';
-    getDBCards(query, callback);
+    executeDbQuery(query, callback);
 }
 
 function getCardsByName(productName, callback) {
     console.log('get cards by name: ' + productName);
     var query = 'select from CardContent where orgId="' + orgId + '" and status = "live" and templateType = "product_card" and title.toLowerCase() containsText "' + productName + '"';
-    getDBCards(query, callback);
+    executeDbQuery(query, callback);
 }
 
 function getCardsByTitle(productTitle, callback) {
     console.log('get cards by title: ' + productTitle);
     var query = 'select from CardContent where orgId="' + orgId + '" and status = "live" and title.toLowerCase() containsText "' + productTitle.toLowerCase() + '"';
-    getDBCards(query, callback);
+    executeDbQuery(query, callback);
 }
 
 function getCardsByProductId(productId, callback) {
     console.log('get cards by id: ' + productId);
     var query = 'select from CardContent where orgId="' + orgId + '" and status = "live" and templateType ="product_card" and productId = "' + productId + '"';
-    getDBCards(query, callback);
+    executeDbQuery(query, callback);
 }
 
 function getRandomCard(callback) {
     console.log('get a random card');
     var query = 'select from CardContent where orgId="' + orgId + '" and status = "live" and title="EAN853" limit 1';
-    getDBCards(query, callback);
+    executeDbQuery(query, callback);
 }
 
 function getCardsByParentName(parentName, callback) {
     console.log('get cards by parent name: ' + parentName);
     var query = 'select from CardContent where orgId = "' + orgId + '" and status = "live" and parentId IN (select id from CardContent where orgId = "' + orgId + '" and title.toLowerCase()="' + parentName.toLowerCase() + '")';
-    getDBCards(query, callback);
+    executeDbQuery(query, callback);
 }
 
-function getDBCards(query, callback) {
+function executeDbQuery(query, callback) {
     db.open().then(function () {
         console.log('executing query');
+        console.log(query);
         return db.query(query);
-    }).then(function (dbCards) {
-        callback(dbCards);
+    }).then(function (results) {
+        callback(results);
         db.close().then(function () {
             console.log('closed');
         }).catch(function(err){
@@ -314,21 +316,7 @@ function createCarouselAndSend(session, dbCards) {
 function getDBMessage(templateId, callback) {
     console.log('get message from DB: ' + templateId);
     var query = 'select template from ResponseTemplate where orgId="' + orgId + '" and templateId = "' + templateId + '"';
-    db.open().then(function () {
-        return db.query(query);
-    }).then(function (responseTemplates) {
-        callback(responseTemplates);
-        db.close().then(function () {
-            console.log('closed');
-        }).catch(function(err){
-            console.log('error while closing DB connection');
-            console.log(JSON.stringify(err));
-        });
-    }).catch(function(err){
-        console.log('error while executing query');
-        console.log(query);
-        console.log(JSON.stringify(err));
-    });
+    executeDbQuery(query, callback);
 }
 
 module.exports = {
