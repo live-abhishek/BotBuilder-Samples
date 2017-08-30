@@ -13,6 +13,7 @@ var server = OrientDB({
     "httpPort": process.env.ORIENTDB_HTTP_PORT,
     "username": process.env.ORIENTDB_USERNAME,
     "password": process.env.ORIENTDB_PASSWORD
+    // "pool": { max: 10 }
 });
 
 var db = server.use(process.env.ORIENTDB_DBNAME);
