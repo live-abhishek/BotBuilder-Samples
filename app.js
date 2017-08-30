@@ -1,6 +1,10 @@
 // This loads the environment variables from the .env file
 require('dotenv-extended').load();
 
+const appInsights = require("applicationinsights");
+appInsights.setup(process.env.MICROSOFT_APP_INSIGHTS_INSTRUMENTATION_KEY);
+appInsights.start();
+
 var express = require('express');
 var path = require('path');
 var favicon = require('serve-favicon');
