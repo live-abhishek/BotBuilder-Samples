@@ -280,11 +280,11 @@ function getCardsByParentName(parentName, callback) {
 }
 
 function executeDbQuery(query, callback){
+    console.log(query);    
     db.query(query).then(function(results){
         callback(results);
-    }).then(function(err){
+    }).catch(function(err){
         console.log('error while executing query');
-        console.log(query);
         console.log(JSON.stringify(err));
     });
 }
@@ -324,6 +324,15 @@ var gracefulShutdown = function(){
          process.exit()
     }, 10*1000);
 }
+
+setInterval(function(db) {
+    db.query("select id from Organization limit 1").then(function(data) {
+        console.log("ping success");
+    }).catch(function(err) {
+        console.error('ping fail');
+        console.error(err);
+    });
+}, 60000, db);
 
 module.exports = {
     listen: listen,
