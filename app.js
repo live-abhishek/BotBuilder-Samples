@@ -56,3 +56,14 @@ var port = process.env.port || process.env.PORT || 3978;
 app.listen(port, function () {
   console.log('Web Server listening on port %s', port);
 });
+
+
+
+// listen for TERM signal .e.g. kill 
+process.on ('SIGTERM', bot.gracefulShutdown);
+
+// listen for INT signal e.g. Ctrl-C
+process.on ('SIGINT', bot.gracefulShutdown);
+
+
+process.on ('exit', bot.gracefulShutdown);

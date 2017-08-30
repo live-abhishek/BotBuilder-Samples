@@ -14,7 +14,9 @@ var server = OrientDB({
     "username": process.env.ORIENTDB_USERNAME,
     "password": process.env.ORIENTDB_PASSWORD
 });
+
 var db = server.use(process.env.ORIENTDB_DBNAME);
+
 var orgId = process.env.ORG_ID;
 
 var bot = new builder.UniversalBot(connector, [function (session) {
@@ -79,6 +81,7 @@ bot.dialog('searchByName', [
 bot.dialog('search', [
 
     function (session) {
+        session.sendTyping();
         getDBMessage('NAVIGATION_INTRO', function(responseTemplates){
             builder.Prompts.choice(session, responseTemplates[0].template, ["Search By Product name or description", "Search By Product Id", "Barcode photo of product"], { listStyle: builder.ListStyle.button });
         })
@@ -180,7 +183,7 @@ bot.on('conversationUpdate', function (message) {
                     bot.send(new builder.Message()
                         .address(message.address)
                         .text(res[0].template));
-                    bot.beginDialog(message.address, '/');
+                        bot.beginDialog(message.address, '/');
                 });
             }
         });
@@ -243,56 +246,47 @@ function createCard(session, dbCard) {
 function getRootCards(callback) {
     console.log('get all root cards');
     var query = 'select from CardContent where parentId = "root" and orgId="' + orgId + '" and status = "live" and templateType != "newarrivals_card"';
-    getDBCards(query, callback);
+    executeDbQuery(query, callback);
 }
 
 function getCardsByName(productName, callback) {
     console.log('get cards by name: ' + productName);
     var query = 'select from CardContent where orgId="' + orgId + '" and status = "live" and templateType = "product_card" and title.toLowerCase() containsText "' + productName + '"';
-    getDBCards(query, callback);
+    executeDbQuery(query, callback);
 }
 
 function getCardsByTitle(productTitle, callback) {
     console.log('get cards by title: ' + productTitle);
     var query = 'select from CardContent where orgId="' + orgId + '" and status = "live" and title.toLowerCase() containsText "' + productTitle.toLowerCase() + '"';
-    getDBCards(query, callback);
+    executeDbQuery(query, callback);
 }
 
 function getCardsByProductId(productId, callback) {
     console.log('get cards by id: ' + productId);
     var query = 'select from CardContent where orgId="' + orgId + '" and status = "live" and templateType ="product_card" and productId = "' + productId + '"';
-    getDBCards(query, callback);
+    executeDbQuery(query, callback);
 }
 
 function getRandomCard(callback) {
     console.log('get a random card');
     var query = 'select from CardContent where orgId="' + orgId + '" and status = "live" and title="EAN853" limit 1';
-    getDBCards(query, callback);
+    executeDbQuery(query, callback);
 }
 
 function getCardsByParentName(parentName, callback) {
     console.log('get cards by parent name: ' + parentName);
     var query = 'select from CardContent where orgId = "' + orgId + '" and status = "live" and parentId IN (select id from CardContent where orgId = "' + orgId + '" and title.toLowerCase()="' + parentName.toLowerCase() + '")';
-    getDBCards(query, callback);
+    executeDbQuery(query, callback);
 }
 
-function getDBCards(query, callback) {
-    db.open().then(function () {
-        console.log('executing query');
-        return db.query(query);
-    }).then(function (dbCards) {
-        callback(dbCards);
-        db.close().then(function () {
-            console.log('closed');
-        }).catch(function(err){
-            console.log('error while closing DB connection');
-            console.log(JSON.stringify(err));
-        });
-    }).catch(function(err){
+function executeDbQuery(query, callback){
+    db.query(query).then(function(results){
+        callback(results);
+    }).then(function(err){
         console.log('error while executing query');
         console.log(query);
         console.log(JSON.stringify(err));
-    });;
+    });
 }
 
 
@@ -314,25 +308,26 @@ function createCarouselAndSend(session, dbCards) {
 function getDBMessage(templateId, callback) {
     console.log('get message from DB: ' + templateId);
     var query = 'select template from ResponseTemplate where orgId="' + orgId + '" and templateId = "' + templateId + '"';
-    db.open().then(function () {
-        return db.query(query);
-    }).then(function (responseTemplates) {
-        callback(responseTemplates);
-        db.close().then(function () {
-            console.log('closed');
-        }).catch(function(err){
-            console.log('error while closing DB connection');
-            console.log(JSON.stringify(err));
-        });
-    }).catch(function(err){
-        console.log('error while executing query');
-        console.log(query);
-        console.log(JSON.stringify(err));
+    executeDbQuery(query, callback);
+}
+
+var gracefulShutdown = function(){
+    console.log("Received kill signal, shutting down gracefully.");
+    server.close(function() {
+      console.log("Closed out remaining connections.");
+      process.exit()
     });
+    
+     // if after 
+     setTimeout(function() {
+         console.error("Could not close connections in time, forcefully shutting down");
+         process.exit()
+    }, 10*1000);
 }
 
 module.exports = {
     listen: listen,
     beginDialog: beginDialog,
-    sendMessage: sendMessage
+    sendMessage: sendMessage,
+    gracefulShutdown: gracefulShutdown
 };
