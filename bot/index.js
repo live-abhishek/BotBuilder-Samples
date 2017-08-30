@@ -14,7 +14,9 @@ var server = OrientDB({
     "username": process.env.ORIENTDB_USERNAME,
     "password": process.env.ORIENTDB_PASSWORD
 });
+
 var db = server.use(process.env.ORIENTDB_DBNAME);
+
 var orgId = process.env.ORG_ID;
 
 var bot = new builder.UniversalBot(connector, [function (session) {
@@ -181,7 +183,7 @@ bot.on('conversationUpdate', function (message) {
                     bot.send(new builder.Message()
                         .address(message.address)
                         .text(res[0].template));
-                    bot.beginDialog(message.address, '/');
+                        bot.beginDialog(message.address, '/');
                 });
             }
         });
@@ -277,24 +279,14 @@ function getCardsByParentName(parentName, callback) {
     executeDbQuery(query, callback);
 }
 
-function executeDbQuery(query, callback) {
-    db.open().then(function () {
-        console.log('executing query');
-        console.log(query);
-        return db.query(query);
-    }).then(function (results) {
+function executeDbQuery(query, callback){
+    db.query(query).then(function(results){
         callback(results);
-        db.close().then(function () {
-            console.log('closed');
-        }).catch(function(err){
-            console.log('error while closing DB connection');
-            console.log(JSON.stringify(err));
-        });
-    }).catch(function(err){
+    }).then(function(err){
         console.log('error while executing query');
         console.log(query);
         console.log(JSON.stringify(err));
-    });;
+    });
 }
 
 
@@ -319,8 +311,23 @@ function getDBMessage(templateId, callback) {
     executeDbQuery(query, callback);
 }
 
+var gracefulShutdown = function(){
+    console.log("Received kill signal, shutting down gracefully.");
+    server.close(function() {
+      console.log("Closed out remaining connections.");
+      process.exit()
+    });
+    
+     // if after 
+     setTimeout(function() {
+         console.error("Could not close connections in time, forcefully shutting down");
+         process.exit()
+    }, 10*1000);
+}
+
 module.exports = {
     listen: listen,
     beginDialog: beginDialog,
-    sendMessage: sendMessage
+    sendMessage: sendMessage,
+    gracefulShutdown: gracefulShutdown
 };
