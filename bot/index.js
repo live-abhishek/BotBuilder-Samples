@@ -28,7 +28,7 @@ var bot = new builder.UniversalBot(connector, [function (session) {
         getRootCards(function (res) {
             createCarouselAndSend(session, res);
         });
-    } else if( msgText == 'bye'){
+    } else if(msgText == 'bye' || msgText == 'cancel'){
         getDBMessage('BYE_TEMPLATE', function (responseTemplates) {
             session.send(responseTemplates[0].template);
         });
@@ -136,14 +136,7 @@ bot.dialog('search', [
         session.endDialog();
     }
 ])
-    .triggerAction({ matches: /^search|select search/i })
-    .endConversationAction(
-    "endSearch", "Bye!",
-    {
-        matches: /^cancel$|^goodbye$/i,
-        confirmPrompt: "Are you sure?"
-    }
-    );
+    .triggerAction({ matches: /^search|select search/i });
 
 // TODO: test this for restarting conversation
 // Send welcome when conversation with bot is started, by initiating the root dialog
@@ -168,7 +161,7 @@ bot.use({
     botbuilder: function (session, next) {
         var text = session.message.text.toLowerCase();
         console.log(session.message);
-        if(text == 'hi' || text == 'hello' || text == 'bye'){
+        if(text == 'hi' || text == 'hello' || text == 'bye' || text == 'cancel'){
             session.clearDialogStack();
         }
         next();
@@ -276,7 +269,9 @@ function createCarouselAndSend(session, dbCards, continueDialog) {
         msg.attachments(heroCards);
         session.send(msg);
     } else {
-        session.send("No products found!");
+        getDBMessage('SORRY_ASK_ADDRESS', function (responseTemplates) {
+            session.send(responseTemplates[0].template);
+        });
     }
     if(!continueDialog){
         session.endDialog();
