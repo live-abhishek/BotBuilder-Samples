@@ -1,6 +1,7 @@
 var builder = require('botbuilder');
 var siteUrl = require('./site-url');
 var OrientDB = require('orientjs');
+var ManualDialog = require('./ManualDialog');
 
 var connector = new builder.ChatConnector({
     appId: process.env.MICROSOFT_APP_ID,
@@ -27,6 +28,10 @@ var bot = new builder.UniversalBot(connector, [function (session) {
         getRootCards(function (res) {
             createCarouselAndSend(session, res);
         });
+    } else if(msgText == 'bye' || msgText == 'cancel'){
+        getDBMessage('BYE_TEMPLATE', function (responseTemplates) {
+            session.send(responseTemplates[0].template);
+        });
     }
     else {
         session.sendTyping();
@@ -41,15 +46,16 @@ bot.dialog('searchByBarcode', [
         builder.Prompts.attachment(session, "Upload barcode image");
     },
     function (session, result) {
-        // not using the result right now
         builder.Prompts.choice(session, "It seems to be an EAN853. Is that correct?", ["No", "Yes"], { listStyle: builder.ListStyle.button });
     },
     function (session, result) {
         if (result.response.entity.toLowerCase() === 'yes') {
             session.sendTyping();
             getRandomCard(function (dbCards) {
-                createCarouselAndSend(session, dbCards);
+                createCarouselAndSend(session, dbCards, true);
             });
+            session.message.text = '';
+            session.replaceDialog('searchByNameLoop');
         } else {
             session.replaceDialog('searchByBarcode');
         }
@@ -70,13 +76,37 @@ bot.dialog('searchByProductId', [
 ]);
 
 bot.dialog('searchByName', [
-    function (session) {
-        builder.Prompts.text(session, 'Enter name of product');
+    function(session, args, next){
+        session.send('Enter name of the product');
+        next();
     },
-    function(session){
-        session.send('Could not find any product').endDialog();
+    function(session, args, next){
+        session.message.text = '';
+        session.beginDialog('searchByNameLoop');
     }
 ]);
+
+bot.dialog('searchByNameLoop', new ManualDialog([
+    function(session){
+        var input = session.message.text;
+        if(input ==  ''){
+            return;
+        } else {
+            var selectPrefix = 'Select ';
+            if( input.startsWith(selectPrefix)){
+                var selectedItem = input.substring(selectPrefix.length);
+                getCardsByParentName(selectedItem, function(dbCards){
+                    createCarouselAndSend(session, dbCards, true);
+                });
+            } else {
+                getCardsByName(input, function(dbCards){
+                    createCarouselAndSend(session, dbCards, true);
+                });
+            }
+            return;
+        }
+    },
+]));
 
 
 bot.dialog('search', [
@@ -106,73 +136,7 @@ bot.dialog('search', [
         session.endDialog();
     }
 ])
-    .triggerAction({ matches: /^search/i })
-    .endConversationAction(
-    "endSearch", "Bye!",
-    {
-        matches: /^cancel$|^goodbye$/i,
-        confirmPrompt: "Are you sure?"
-    }
-    );
-
-bot.dialog('actuators', function (session) {
-    session.sendTyping();
-    getCardsByParentName('search', function (dbCards) {
-        createCarouselAndSend(session, dbCards);
-    })
-})
-    .triggerAction({ matches: /^actuators?$/i });
-
-bot.dialog('electrical actuators', function (session) {
-    session.sendTyping();
-    getCardsByParentName('electrical actuators', function (dbCards) {
-        createCarouselAndSend(session, dbCards);
-    })
-}).triggerAction({ matches: /^electrical actuators?$/i });;
-
-bot.dialog('electronic electrical actuators', function (session) {
-    session.sendTyping();
-    getCardsByParentName('electronic actuators', function (dbCards) {
-        createCarouselAndSend(session, dbCards);
-    })
-}).triggerAction({ matches: /^electronic actuators?$/i });
-
-bot.dialog('EAN853', function (session) {
-    session.sendTyping();
-    getCardsByTitle('EAN853', function (dbCards) {
-        createCarouselAndSend(session, dbCards);
-    })
-}).triggerAction({ matches: /^EAN853$/i });
-
-bot.dialog('EAN853FAQ', function (session) {
-    session.sendTyping();
-    getCardsByParentName('EAN853', function (dbCards) {
-        createCarouselAndSend(session, dbCards);
-    })
-}).triggerAction({ matches: /^EAN853 FAQ/i });
-
-bot.dialog('EAN853ElectricalIssue', function (session) {
-    session.sendTyping();
-    getCardsByParentName('Electrical Issues', function (dbCards) {
-        createCarouselAndSend(session, dbCards);
-    })
-}).triggerAction({ matches: /^Electrical Issues?/i });
-
-bot.dialog('ElectricalIssues-Type2', function (session) {
-    session.sendTyping();
-    getCardsByParentName('Electrical Issues - Type 2', function (dbCards) {
-        createCarouselAndSend(session, dbCards);
-    })
-}).triggerAction({ matches: /^Electrical Type 2|Type 2/i });
-
-bot.dialog('SubTypeB', function (session) {
-    session.sendTyping();
-    getCardsByParentName('Sub Type B', function (dbCards) {
-        createCarouselAndSend(session, dbCards);
-    })
-}).triggerAction({ matches: /^Sub Type B?/i });
-
-
+    .triggerAction({ matches: /^search|select search/i });
 
 // TODO: test this for restarting conversation
 // Send welcome when conversation with bot is started, by initiating the root dialog
@@ -195,8 +159,11 @@ bot.on('conversationUpdate', function (message) {
 // Middle ware
 bot.use({
     botbuilder: function (session, next) {
-        var text = session.message.text;
+        var text = session.message.text.toLowerCase();
         console.log(session.message);
+        if(text == 'hi' || text == 'hello' || text == 'bye' || text == 'cancel'){
+            session.clearDialogStack();
+        }
         next();
     }
 });
@@ -227,7 +194,7 @@ function createCard(session, dbCard) {
             var cardAction;
             var cta = dbCard.callToActions[i];
             if (cta.type === 'postback') {
-                cardAction = builder.CardAction.imBack(session, cta.title, cta.title);
+                cardAction = builder.CardAction.imBack(session, 'Select ' + cta.title, cta.title);
             } else if (cta.type === 'web_url') {
                 cardAction = builder.CardAction.openUrl(session, cta.url, cta.title);
             }
@@ -252,7 +219,7 @@ function getRootCards(callback) {
 
 function getCardsByName(productName, callback) {
     console.log('get cards by name: ' + productName);
-    var query = 'select from CardContent where orgId="' + orgId + '" and status = "live" and templateType = "product_card" and title.toLowerCase() containsText "' + productName + '"';
+    var query = 'select from CardContent where orgId="' + orgId + '" and status = "live" and title.toLowerCase() = "' + productName.toLowerCase() + '"';
     executeDbQuery(query, callback);
 }
 
@@ -291,7 +258,7 @@ function executeDbQuery(query, callback){
 }
 
 
-function createCarouselAndSend(session, dbCards) {
+function createCarouselAndSend(session, dbCards, continueDialog) {
     var msg = new builder.Message(session);
     if (dbCards.length > 0) {
         var heroCards = [];
@@ -300,9 +267,14 @@ function createCarouselAndSend(session, dbCards) {
         }
         msg.attachmentLayout(builder.AttachmentLayout.carousel);
         msg.attachments(heroCards);
-        session.send(msg).endDialog();
+        session.send(msg);
     } else {
-        session.send("No products found!").endDialog();
+        getDBMessage('SORRY_ASK_ADDRESS', function (responseTemplates) {
+            session.send(responseTemplates[0].template);
+        });
+    }
+    if(!continueDialog){
+        session.endDialog();
     }
 }
 
