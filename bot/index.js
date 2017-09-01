@@ -68,10 +68,11 @@ bot.dialog('searchByProductId', [
     },
     function (session, result) {
         console.log(result.response);
-        if (result.response !== 'EAN853') {
-            session.send('Could not find any product');
-        }
-        session.endDialog();
+        getCardsByName(result.response, function(dbCards){
+            createCarouselAndSend(session, dbCards, true);
+        });
+        session.message.text = '';
+        session.replaceDialog('searchByNameLoop');
     }
 ]);
 
