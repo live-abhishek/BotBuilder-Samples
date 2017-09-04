@@ -1,25 +1,11 @@
 {
-  "name": "botbuilder-sample-contosoflowers",
+  "name": "hashblu-demo-bot",
   "version": "1.0.0",
-  "description": "Bot Builder Sample - Contoso Flowers",
+  "description": "Hashblu Demo bot",
   "scripts": {
     "start": "node app.js"
   },
-  "author": "Microsoft Corp.",
-  "license": "MIT",
-  "keywords": [
-    "botbuilder",
-    "bots",
-    "chatbots",
-    "botbuilder-samples"
-  ],
-  "bugs": {
-    "url": "https://github.com/Microsoft/BotBuilder-Samples/issues"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/Microsoft/BotBuilder-Samples.git"
-  },
+  "author": "Hashblu",
   "dependencies": {
     "applicationinsights": "^0.21.0",
     "bluebird": "^3.4.7",
