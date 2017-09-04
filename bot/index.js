@@ -28,7 +28,7 @@ var bot = new builder.UniversalBot(connector, [function (session) {
         getRootCards(function (res) {
             createCarouselAndSend(session, res);
         });
-    } else if(msgText == 'bye' || msgText == 'cancel' || msgText = 'exit'){
+    } else if(msgText == 'bye' || msgText == 'cancel' || msgText == 'exit'){
         getDBMessage('BYE_TEMPLATE', function (responseTemplates) {
             session.send(responseTemplates[0].template);
         });
