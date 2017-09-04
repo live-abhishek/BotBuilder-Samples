@@ -28,7 +28,7 @@ var bot = new builder.UniversalBot(connector, [function (session) {
         getRootCards(function (res) {
             createCarouselAndSend(session, res);
         });
-    } else if(msgText == 'bye' || msgText == 'cancel'){
+    } else if(msgText == 'bye' || msgText == 'cancel' || msgText == 'exit'){
         getDBMessage('BYE_TEMPLATE', function (responseTemplates) {
             session.send(responseTemplates[0].template);
         });
@@ -162,7 +162,7 @@ bot.use({
     botbuilder: function (session, next) {
         var text = session.message.text.toLowerCase();
         console.log(session.message);
-        if(text == 'hi' || text == 'hello' || text == 'bye' || text == 'cancel'){
+        if(text == 'hi' || text == 'hello' || text == 'bye' || text == 'cancel' || text == 'exit'){
             session.clearDialogStack();
         }
         next();
