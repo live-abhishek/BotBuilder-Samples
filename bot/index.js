@@ -2,6 +2,8 @@ var builder = require('botbuilder');
 var siteUrl = require('./site-url');
 var OrientDB = require('orientjs');
 var ManualDialog = require('./ManualDialog');
+var salesforceLiveAgentService = require('../salesforce').slService;
+var slconnections = require('../salesforce/salesforceConnections').connections;
 
 var connector = new builder.ChatConnector({
     appId: process.env.MICROSOFT_APP_ID,
@@ -32,6 +34,9 @@ var bot = new builder.UniversalBot(connector, [function (session) {
         getDBMessage('BYE_TEMPLATE', function (responseTemplates) {
             session.send(responseTemplates[0].template);
         });
+    } else if(msgText == 'help'){
+        session.beginDialog('salesforce');
+        // session.send(salesforceLiveAgentService.testMessage());
     }
     else {
         session.sendTyping();
@@ -139,6 +144,62 @@ bot.dialog('search', [
 ])
     .triggerAction({ matches: /^search|select search/i });
 
+bot.dialog('salesforce', [
+    function(session, args, next){
+        session.send('Starting Live Agent session.');
+        session.sendTyping();
+        // remove the current slconnection if it is already present in connections list
+        salesforceLiveAgentService.stopPolling();
+        removeSlConnectionByConversationId(session.message.address.conversation.id);
+        next();
+    },
+    function(session){
+        session.beginDialog('liveAgentChat');
+    },
+    function(session){
+        session.endDialog();
+    }
+]);
+
+bot.dialog('liveAgentChat', new ManualDialog([
+    function(session){
+        var msg = session.message.text;
+        if(msg == 'endchat'){
+            salesforceLiveAgentService.stopPolling();
+            removeSlConnectionByConversationId(session.message.address.conversation.id);
+            session.endDialog('Live agent session ended.');
+            return;
+        }
+        // check if the current session is in slconnections
+        var slconnectionFound = false;
+        for(var i = 0; i < slconnections.length; i++){
+            if(slconnections[i].conversationId == session.message.address.conversation.id){
+                slconnectionFound = true;
+                if(slconnections[i].state === 1){
+                    salesforceLiveAgentService.sendMessage(session.message.text);
+                    break;
+                }
+            }
+        }
+        if(!slconnectionFound){
+            var newSlconnection = {
+                conversationId: session.message.address.conversation.id,
+                state: 0 // not connected yet
+            };
+            slconnections.push(newSlconnection);
+            salesforceLiveAgentService.getSessionId(function(){
+                // callback to start the polling when connection is established with the server. Actual communicatio is subject to live agent accepting the connection
+                newSlconnection.state = 1; // connected
+                session.send('You are now connected to our live agent!');
+                salesforceLiveAgentService.startPolling(session);
+            }, function(){ // Error callback removes the newSlconnection from connections list, if it was unable to start the conversation
+                removeSlConnectionByConversationId(newSlconnection.conversationId);
+                session.send('Could not connect to live agent. Try again after some time');
+            });
+        }
+    }
+]));
+
 // TODO: test this for restarting conversation
 // Send welcome when conversation with bot is started, by initiating the root dialog
 bot.on('conversationUpdate', function (message) {
@@ -205,7 +266,7 @@ function createCard(session, dbCard) {
     var heroCard = new builder.HeroCard(session)
         .title(dbCard.title || '')
         .subtitle(dbCard.subTitle || '')
-        .images([builder.CardImage.create(session, 'https://hashblu-static.s3.amazonaws.com/' + dbCard.imageUrls[0])])
+        .images([builder.CardImage.create(session, 'https://hbdemostore.blob.core.windows.net/hbconsoleimages/' + dbCard.imageUrls[0])])
         .buttons(cardActions);
 
     return heroCard;
@@ -285,6 +346,28 @@ function getDBMessage(templateId, callback) {
     executeDbQuery(query, callback);
 }
 
+function stopAndremoveCurrentSlConnection(slconnectionToRemove){
+    // stop the polling
+    salesforceLiveAgentService.stopPolling();
+    removeSlConnectionByConversationId(slconnectionToRemove.conversationId);
+}
+
+function removeSlConnectionByConversationId(conversationId){
+    // remove from sl connections
+    var connectionIndex = -1;
+    slconnections.every((slconnection, idx) => {
+        if(slconnection.conversationId  == conversationId){
+            connectionIndex = idx;
+            return false; // break
+        } else {
+            return true; // continue
+        }
+    });
+    if(connectionIndex > -1){
+        slconnections.splice(connectionIndex, 1);
+    }
+}
+
 var gracefulShutdown = function(){
     console.log("Received kill signal, shutting down gracefully.");
     server.close(function() {
@@ -301,12 +384,13 @@ var gracefulShutdown = function(){
 
 setInterval(function(db) {
     db.query("select id from Organization limit 1").then(function(data) {
-        console.log("ping success");
+        console.log("DB ping success");
     }).catch(function(err) {
-        console.error('ping fail');
+        console.error('DB ping fail');
         console.error(err);
     });
 }, 60000, db);
+
 
 module.exports = {
     listen: listen,
