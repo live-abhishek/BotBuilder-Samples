@@ -266,7 +266,7 @@ function createCard(session, dbCard) {
     var heroCard = new builder.HeroCard(session)
         .title(dbCard.title || '')
         .subtitle(dbCard.subTitle || '')
-        .images([builder.CardImage.create(session, 'https://hashblu-static.s3.amazonaws.com/' + dbCard.imageUrls[0])])
+        .images([builder.CardImage.create(session, 'https://hbdemostore.blob.core.windows.net/hbconsoleimages/' + dbCard.imageUrls[0])])
         .buttons(cardActions);
 
     return heroCard;
