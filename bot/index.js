@@ -34,10 +34,11 @@ var bot = new builder.UniversalBot(connector, [function (session) {
         getDBMessage('BYE_TEMPLATE', function (responseTemplates) {
             session.send(responseTemplates[0].template);
         });
-    } else if(msgText == 'help'){
-        session.beginDialog('salesforce');
+    } 
+    // else if(msgText == 'help'){
+        // session.beginDialog('salesforce');
         // session.send(salesforceLiveAgentService.testMessage());
-    }
+    // }
     else {
         session.sendTyping();
         getDBMessage('INVALID_REQUEST', function (responseTemplates) {
