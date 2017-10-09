@@ -1,4 +1,5 @@
 var builder = require('botbuilder');
+var logger = require('../log4js').logger;
 var siteUrl = require('./site-url');
 var OrientDB = require('orientjs');
 var ManualDialog = require('./ManualDialog');
@@ -73,7 +74,7 @@ bot.dialog('searchByProductId', [
         builder.Prompts.text(session, "Enter id of the product");
     },
     function (session, result) {
-        console.log(result.response);
+        logger.info(result.response);
         getCardsByName(result.response, function(dbCards){
             createCarouselAndSend(session, dbCards, true);
         });
@@ -223,7 +224,7 @@ bot.on('conversationUpdate', function (message) {
 bot.use({
     botbuilder: function (session, next) {
         var text = session.message.text.toLowerCase();
-        console.log(session.message);
+        logger.debug(session.message);
         if(text == 'hi' || text == 'hello' || text == 'bye' || text == 'cancel' || text == 'exit'){
             session.clearDialogStack();
         }
@@ -275,48 +276,48 @@ function createCard(session, dbCard) {
 
 // DB functions
 function getRootCards(callback) {
-    console.log('get all root cards');
+    logger.info('get all root cards');
     var query = 'select from CardContent where parentId = "root" and orgId="' + orgId + '" and status = "live" and templateType != "newarrivals_card"';
     executeDbQuery(query, callback);
 }
 
 function getCardsByName(productName, callback) {
-    console.log('get cards by name: ' + productName);
+    logger.info('get cards by name: ' + productName);
     var query = 'select from CardContent where orgId="' + orgId + '" and status = "live" and title.toLowerCase() = "' + productName.toLowerCase() + '"';
     executeDbQuery(query, callback);
 }
 
 function getCardsByTitle(productTitle, callback) {
-    console.log('get cards by title: ' + productTitle);
+    logger.info('get cards by title: ' + productTitle);
     var query = 'select from CardContent where orgId="' + orgId + '" and status = "live" and title.toLowerCase() containsText "' + productTitle.toLowerCase() + '"';
     executeDbQuery(query, callback);
 }
 
 function getCardsByProductId(productId, callback) {
-    console.log('get cards by id: ' + productId);
+    logger.info('get cards by id: ' + productId);
     var query = 'select from CardContent where orgId="' + orgId + '" and status = "live" and templateType ="product_card" and productId = "' + productId + '"';
     executeDbQuery(query, callback);
 }
 
 function getRandomCard(callback) {
-    console.log('get a random card');
+    logger.info('get a random card');
     var query = 'select from CardContent where orgId="' + orgId + '" and status = "live" and title="EAN853" limit 1';
     executeDbQuery(query, callback);
 }
 
 function getCardsByParentName(parentName, callback) {
-    console.log('get cards by parent name: ' + parentName);
+    logger.info('get cards by parent name: ' + parentName);
     var query = 'select from CardContent where orgId = "' + orgId + '" and status = "live" and parentId IN (select id from CardContent where orgId = "' + orgId + '" and title.toLowerCase()="' + parentName.toLowerCase() + '")';
     executeDbQuery(query, callback);
 }
 
 function executeDbQuery(query, callback){
-    console.log(query);    
+    logger.info(query);    
     db.query(query).then(function(results){
         callback(results);
     }).catch(function(err){
-        console.log('error while executing query');
-        console.log(JSON.stringify(err));
+        logger.error('error while executing query');
+        logger.error(JSON.stringify(err));
     });
 }
 
@@ -342,7 +343,7 @@ function createCarouselAndSend(session, dbCards, continueDialog) {
 }
 
 function getDBMessage(templateId, callback) {
-    console.log('get message from DB: ' + templateId);
+    logger.info('get message from DB: ' + templateId);
     var query = 'select template from ResponseTemplate where orgId="' + orgId + '" and templateId = "' + templateId + '"';
     executeDbQuery(query, callback);
 }
@@ -370,25 +371,25 @@ function removeSlConnectionByConversationId(conversationId){
 }
 
 var gracefulShutdown = function(){
-    console.log("Received kill signal, shutting down gracefully.");
+    logger.info("Received kill signal, shutting down gracefully.");
     server.close(function() {
-      console.log("Closed out remaining connections.");
+      logger.info("Closed out remaining connections.");
       process.exit()
     });
     
      // if after 
      setTimeout(function() {
-         console.error("Could not close connections in time, forcefully shutting down");
+         logger.error("Could not close connections in time, forcefully shutting down");
          process.exit()
     }, 10*1000);
 }
 
 setInterval(function(db) {
     db.query("select id from Organization limit 1").then(function(data) {
-        console.log("DB ping success");
+        logger.info("DB ping success");
     }).catch(function(err) {
-        console.error('DB ping fail');
-        console.error(err);
+        logger.info('DB ping fail');
+        logger.error(err);
     });
 }, 60000, db);
 
