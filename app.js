@@ -1,6 +1,6 @@
 // This loads the environment variables from the .env file
 require('dotenv-extended').load();
-
+var logger = require('./log4js').logger;
 const appInsights = require("applicationinsights");
 appInsights.setup(process.env.MICROSOFT_APP_INSIGHTS_INSTRUMENTATION_KEY);
 appInsights.start();
@@ -59,6 +59,7 @@ app.use(function (err, req, res, next) {
 var port = process.env.port || process.env.PORT || 3978;
 app.listen(port, function () {
   console.log('Web Server listening on port %s', port);
+  logger.debug('Server started on: ' + new Date().toString());
 });
 
 
