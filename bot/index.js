@@ -23,6 +23,7 @@ var server = OrientDB({
 var db = server.use(process.env.ORIENTDB_DBNAME);
 
 var orgId = process.env.ORG_ID;
+var barcodeCard = process.env.BARCODE_CARD;
 
 var bot = new builder.UniversalBot(connector, [function (session) {
     var msgText = session.message.text.toLowerCase();
@@ -53,7 +54,7 @@ bot.dialog('searchByBarcode', [
         builder.Prompts.attachment(session, "Upload barcode image");
     },
     function (session, result) {
-        builder.Prompts.choice(session, "It seems to be an EAN853. Is that correct?", ["No", "Yes"], { listStyle: builder.ListStyle.button });
+        builder.Prompts.choice(session, "It seems to be an " + barcodeCard + ". Is that correct?", ["No", "Yes"], { listStyle: builder.ListStyle.button });
     },
     function (session, result) {
         if (result.response.entity.toLowerCase() === 'yes') {
@@ -301,7 +302,7 @@ function getCardsByProductId(productId, callback) {
 
 function getRandomCard(callback) {
     logger.info('get a random card');
-    var query = 'select from CardContent where orgId="' + orgId + '" and status = "live" and title="EAN853" limit 1';
+    var query = 'select from CardContent where orgId="' + orgId + '" and status = "live" and title="' + barcodeCard + '" limit 1';
     executeDbQuery(query, callback);
 }
 
